@@ -9,20 +9,18 @@ services:
       - "3000"
     environment:
       # This activates our new LocalStorage database
-      - STORAGE_DIR=/mnt/extra_storage
+      - STORAGE_DIR=${STORAGE_DIR:-/storage}
 
       # The server URL pointing to localhost or your domain
-      - SERVER_URL=http://localhost:3000
+      - SERVER_URL=${SERVER_URL:-http://localhost:3000}
 
       # Automatically connect to redis within the docker network
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
     volumes:
       # Map the physical host volume to the container
-      - /mnt/extra_storage:/mnt/extra_storage
+      - ${STORAGE_DIR:-/storage}:/mnt/extra_storage
 
-      # Mount your .env configuration into the app
-      - ./.env:/app/.env
     depends_on:
       - redis
 
