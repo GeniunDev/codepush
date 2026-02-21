@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  codepush-server:
+    build: .
+    container_name: codepush-server
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      # This activates our new LocalStorage database
+      - STORAGE_DIR=/mnt/extra_storage
+
+      # The server URL pointing to localhost or your domain
+      - SERVER_URL=http://localhost:3000
+
+      # Automatically connect to redis within the docker network
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    volumes:
+      # Map the physical host volume to the container
+      - /mnt/extra_storage:/mnt/extra_storage
+
+      # Mount your .env configuration into the app
+      - ./.env:/app/.env
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    container_name: codepush-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+
+volumes:
+  redis_data:
