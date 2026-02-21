@@ -2,10 +2,12 @@ version: '3.8'
 
 services:
   code-push-server:
-    image: lisong/code-push-server:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.server
     container_name: code-push-server
     ports:
-      - "${PORT:-3000}:3000"
+      - "3000"
     environment:
       # General Configuration
       - NODE_ENV=${NODE_ENV:-production}
@@ -49,7 +51,7 @@ services:
       - MYSQL_PASSWORD=${DB_PASSWORD:-your_secure_password}
     volumes:
       # Also store the database data on your extra storage so it's persistent!
-      - ${STORAGE_VOLUMES:-/mnt/extra_storage/codepush}/mysql:/var/lib/mysql
+      - ${STORAGE_VOLUMES:-/mnt/extra_storage}/codepush/mysql:/var/lib/mysql
     networks:
       - codepush-network
     restart: always
@@ -59,7 +61,7 @@ services:
     container_name: codepush-redis
     volumes:
       # Store redis data locally
-      - ${STORAGE_VOLUMES:-/mnt/extra_storage/codepush}/redis:/data
+      - ${STORAGE_VOLUMES:-/mnt/extra_storage}/codepush/redis:/data
     networks:
       - codepush-network
     restart: always
