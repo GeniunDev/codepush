@@ -6,7 +6,7 @@ services:
     container_name: codepush-server
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "3000"
     environment:
       # This activates our new LocalStorage database
       - STORAGE_DIR=/mnt/extra_storage
@@ -31,7 +31,7 @@ services:
     container_name: codepush-redis
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "6379"
     volumes:
       - redis_data:/data
 
