@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  code-push-server:
+    image: shimoapp/code-push-server:latest
+    container_name: code-push-server
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      # General Configuration
+      - NODE_ENV=${NODE_ENV:-production}
+      - TZ=${TZ:-UTC}
+
+      # Database Configuration
+      - DB_HOST=${DB_HOST:-db}
+      - DB_PORT=${DB_PORT:-3306}
+      - DB_USER=${DB_USER:-codepush}
+      - DB_PASSWORD=${DB_PASSWORD:-your_secure_password}
+      - DB_DATABASE=${DB_DATABASE:-codepush}
+
+      # Redis Configuration
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/1}
+
+      # Storage Configuration (Local Volume)
+      - STORAGE_TYPE=${STORAGE_TYPE:-local}
+      - STORAGE_DIR=${STORAGE_DIR:-/storage}
+      # IMPORTANT: Replace localhost with your domain or server IP address
+      - DOWNLOAD_URL=${DOWNLOAD_URL:-http://localhost:3000/download}
+
+      # Security (Change this to a long random string!)
+      - JWT_TOKEN_SECRET=${JWT_TOKEN_SECRET:-supers3cr3tt0k3n_changeme}
+    volumes:
+      # Mount the host directory where you want bundles stored into the container's /storage
+      - ${STORAGE_VOLUMES:-/mnt/extra_storage/codepush}/bundles:/storage
+    depends_on:
+      - db
+      - redis
+    networks:
+      - codepush-network
+    restart: always
+
+  db:
+    image: mysql:5.7
+    container_name: codepush-db
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-your_root_password}
+      - MYSQL_DATABASE=${DB_DATABASE:-codepush}
+      - MYSQL_USER=${DB_USER:-codepush}
+      - MYSQL_PASSWORD=${DB_PASSWORD:-your_secure_password}
+    volumes:
+      # Also store the database data on your extra storage so it's persistent!
+      - ${STORAGE_VOLUMES:-/mnt/extra_storage/codepush}/mysql:/var/lib/mysql
+    networks:
+      - codepush-network
+    restart: always
+
+  redis:
+    image: redis:alpine
+    container_name: codepush-redis
+    volumes:
+      # Store redis data locally
+      - ${STORAGE_VOLUMES:-/mnt/extra_storage/codepush}/redis:/data
+    networks:
+      - codepush-network
+    restart: always
+
+networks:
+  codepush-network:
+    driver: bridge
