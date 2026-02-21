@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   code-push-server:
-    image: shimoapp/code-push-server:latest
+    image: lisong/code-push-server:latest
     container_name: code-push-server
     ports:
       - "${PORT:-3000}:3000"
@@ -31,7 +31,7 @@ services:
       - JWT_TOKEN_SECRET=${JWT_TOKEN_SECRET:-supers3cr3tt0k3n_changeme}
     volumes:
       # Mount the host directory where you want bundles stored into the container's /storage
-      - ${STORAGE_VOLUMES:-/mnt/extra_storage/codepush}/bundles:/storage
+      - ${STORAGE_VOLUMES:-/mnt/extra_storage}/codepush/bundles:/storage
     depends_on:
       - db
       - redis
