@@ -14,9 +14,19 @@ services:
       # The server URL pointing to localhost or your domain
       - SERVER_URL=${SERVER_URL:-http://localhost:3000}
 
+      # GitHub OAuth
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
+
       # Automatically connect to redis within the docker network
       - REDIS_HOST=${REDIS_HOST:-redis}
       - REDIS_PORT=${REDIS_PORT:-6379}
+
+      # Other Configuration
+      - UPLOAD_SIZE_LIMIT_MB=${UPLOAD_SIZE_LIMIT_MB:-200}
+      - ENABLE_ACCOUNT_REGISTRATION=${ENABLE_ACCOUNT_REGISTRATION:-true}
+      - REFRESH_CREDENTIALS_INTERVAL=${REFRESH_CREDENTIALS_INTERVAL:-10}
+
     volumes:
       # Map the physical host volume to the container
       - ${STORAGE_DIR:-/storage}:/mnt/extra_storage
