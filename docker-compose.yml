@@ -5,8 +5,6 @@ services:
     build: .
     container_name: codepush-server
     restart: unless-stopped
-    ports:
-      - "3000"
     environment:
       # This activates our new LocalStorage database
       - STORAGE_DIR=${STORAGE_DIR:-/storage}
@@ -31,6 +29,9 @@ services:
       # Map the physical host volume to the container
       - ${STORAGE_DIR:-/storage}:/mnt/extra_storage
 
+    networks:
+      - codepush_network
+
     depends_on:
       - redis
 
@@ -38,11 +39,15 @@ services:
     image: redis:7-alpine
     container_name: codepush-redis
     restart: unless-stopped
-    ports:
-      - "6379"
     volumes:
       - redis_data:/data
 
+    networks:
+      - codepush_network
 
 volumes:
   redis_data:
+
+networks:
+  codepush_network:
+    driver: bridge
