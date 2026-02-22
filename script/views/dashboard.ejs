@@ -133,7 +133,12 @@
           </table>
         </div>
         <% } else if (page==='app-detail' ) { %>
-          <div class="animate-fade-in">
+          <div id="full-page-loader" class="flex flex-col items-center justify-center py-40 animate-fade-in">
+            <div class="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin mb-6">
+            </div>
+            <p class="text-indigo-400 font-bold uppercase tracking-widest text-sm opacity-50">Loading Application...</p>
+          </div>
+          <div id="app-detail-content" class="animate-fade-in hidden">
             <a href="/dashboard/apps"
               class="mb-6 text-slate-400 hover:text-white flex items-center gap-2 transition-colors inline-flex">
               <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to Apps
@@ -284,6 +289,12 @@
       const app = apps.find(a => a.name === APP_NAME);
       if (!app) return window.location.href = '/dashboard/apps';
       state.activeApp = app;
+
+      const loader = document.getElementById('full-page-loader');
+      const content = document.getElementById('app-detail-content');
+      if (loader) loader.classList.add('hidden');
+      if (content) content.classList.remove('hidden');
+
       document.getElementById('app-desc-display').innerText = `OS: ${app.os || 'Unknown'} | Platform: ${app.platform || 'Cross-Platform'}`;
       renderAppDetail(app);
     }
@@ -293,7 +304,7 @@
       container.innerHTML = `<div class="flex items-center justify-center py-20 animate-pulse text-indigo-400"><div class="flex flex-col items-center gap-4 text-sm font-bold uppercase tracking-widest opacity-50"><div class="w-8 h-8 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>Loading Deployments</div></div>`;
       const { deployments } = await api(`/apps/${app.name}/deployments`);
 
-      container.innerHTML = `<div class="flex justify-between items-center mb-8"><h2 class="text-xl font-bold text-white">Environments</h2><button class="text-indigo-400 text-sm font-bold hover:text-indigo-300">Manage Keys</button></div><div class="space-y-4">${deployments.map(d => `<div class="bg-white/3 rounded-2xl p-6 border border-white/5 flex items-center justify-between"><div class="flex-1"><h4 class="text-lg font-bold text-white flex items-center gap-2">${d.name} <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span></h4><div class="mt-4 font-mono text-[11px] text-slate-500 bg-black/40 px-3 py-2 rounded-lg border border-white/5 flex items-center gap-3 w-fit"><span>Deployment Key: ${d.key}</span><button onclick="navigator.clipboard.writeText('${d.key}'); showToast('Key copied to clipboard')" class="text-slate-500 hover:text-white transition-colors"><i data-lucide="copy" class="w-3.5 h-3.5"></i></button></div></div><button class="bg-indigo-500/5 hover:bg-indigo-500/10 text-indigo-400 font-bold px-4 py-2 rounded-xl text-xs transition-colors border border-indigo-500/20">View Release Logs</button></div>`).join('')}</div>`;
+      container.innerHTML = `<div class="flex justify-between items-center mb-8"><h2 class="text-xl font-bold text-white">Environments</h2><button class="text-indigo-400 text-sm font-bold hover:text-indigo-300">Manage Keys</button></div><div class="space-y-4">${deployments.map(d => `<div class="bg-white/3 rounded-2xl p-6 border border-white/5 flex flex-col xl:flex-row xl:items-center justify-between gap-4"><div class="flex-1 min-w-0"><h4 class="text-lg font-bold text-white flex items-center gap-2">${d.name} <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span></h4><div class="mt-4 font-mono text-[11px] text-slate-500 bg-black/40 px-3 py-2 rounded-lg border border-white/5 flex flex-wrap sm:flex-nowrap items-center gap-3 w-full sm:w-fit overflow-hidden"><span class="truncate">Deployment Key: ${d.key}</span><button onclick="navigator.clipboard.writeText('${d.key}'); showToast('Key copied to clipboard')" class="shrink-0 text-slate-500 hover:text-white transition-colors"><i data-lucide="copy" class="w-3.5 h-3.5"></i></button></div></div><button class="w-full xl:w-auto shrink-0 bg-indigo-500/5 hover:bg-indigo-500/10 text-indigo-400 font-bold px-4 py-3 xl:py-2 rounded-xl text-xs transition-colors border border-indigo-500/20 whitespace-nowrap mt-2 xl:mt-0">View Release Logs</button></div>`).join('')}</div>`;
 
       document.getElementById('app-meta').innerHTML = `<div class="flex justify-between border-b border-white/5 pb-3"><span class="text-slate-500">Platform</span><span class="text-white font-medium">${app.platform || 'Cross-Platform'}</span></div><div class="flex justify-between pt-1"><span class="text-slate-500">Target OS</span><span class="text-white font-medium">${app.os || 'Unknown'}</span></div>`;
       renderCollaborators(app);
