@@ -61,6 +61,8 @@ export interface App {
   /*generated*/ createdTime: number;
   /*generated*/ id?: string;
   name: string;
+  os?: string;
+  platform?: string;
 }
 
 export interface Deployment {
@@ -201,7 +203,7 @@ export function getOwnerEmail(app: App): string {
 }
 
 export function isPrototypePollutionKey(key: string): boolean {
-  return ['__proto__', 'constructor', 'prototype'].includes(key);
+  return ["__proto__", "constructor", "prototype"].includes(key);
 }
 
 export function storageError(errorCode: ErrorCode, message?: string): StorageError {

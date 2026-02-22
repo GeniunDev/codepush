@@ -112,6 +112,8 @@ export interface App {
   /*generated*/ collaborators?: CollaboratorMap;
   /*key*/ name: string;
   /*generated*/ deployments?: string[];
+  os?: string;
+  platform?: string;
 }
 
 /*in*/

@@ -64,6 +64,8 @@ export function appCreationRequestFromBody(body: AppCreationRequest): AppCreatio
 
   appCreationRequest.name = body.name;
   appCreationRequest.manuallyProvisionDeployments = body.manuallyProvisionDeployments;
+  appCreationRequest.os = body.os;
+  appCreationRequest.platform = body.platform;
 
   return appCreationRequest;
 }
@@ -127,6 +129,8 @@ export function toRestApp(storageApp: Storage.App, displayName: string, deployme
     name: displayName,
     collaborators: toRestCollaboratorMap(storageApp.collaborators),
     deployments: sortedDeploymentNames,
+    os: storageApp.os,
+    platform: storageApp.platform,
   };
 }
 
@@ -233,6 +237,8 @@ export function toStorageApp(restApp: App, createdTime: number): Storage.App {
     createdTime: createdTime,
     name: restApp.name,
     collaborators: toStorageCollaboratorMap(restApp.collaborators),
+    os: restApp.os,
+    platform: restApp.platform,
   };
   return storageApp;
 }
