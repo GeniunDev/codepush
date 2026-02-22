@@ -20,7 +20,8 @@ import * as security from "../utils/security";
 import * as storage from "../storage/storage";
 import * as validationUtils from "../utils/validation";
 
-import Promise = q.Promise;
+// Promise is global, q.Promise shadows it and breaks async/await typing.
+// Removing: import Promise = q.Promise;
 
 export interface AuthenticationConfig {
   storage: storage.Storage;
@@ -319,7 +320,7 @@ export class PassportAuthentication {
           return;
         }
 
-        const issueAccessKey = (accountId: string): Promise<void> => {
+        const issueAccessKey = (accountId: string): q.Promise<void> => {
           const now: number = new Date().getTime();
           const friendlyName: string = `Login-${now}`;
           const accessKey: storage.AccessKey = {
@@ -344,7 +345,7 @@ export class PassportAuthentication {
         this._storageInstance
           .getAccountByEmail(emailAddress)
           .then(
-            (account: storage.Account): void | Promise<void> => {
+            (account: storage.Account): void | q.Promise<void> => {
               const existingProviderId: string = PassportAuthentication.getProviderId(account, providerName);
               const isProviderValid: boolean = existingProviderId === user.id;
               switch (action) {
@@ -381,7 +382,7 @@ export class PassportAuthentication {
                   return;
               }
             },
-            (error: storage.StorageError): void | Promise<void> => {
+            (error: storage.StorageError): void | q.Promise<void> => {
               if (error.code !== storage.ErrorCode.NotFound) throw error;
 
               switch (action) {
@@ -397,7 +398,7 @@ export class PassportAuthentication {
                     console.log(`[Auth] Auto-registering new user: ${emailAddress}`);
                     return this._storageInstance
                       .addAccount(newUser)
-                      .then((accountId: string): Promise<void> => issueAccessKey(accountId));
+                      .then((accountId: string): q.Promise<void> => issueAccessKey(accountId));
                   }
                   restErrorUtils.sendForbiddenPage(
                     res,
@@ -421,7 +422,7 @@ export class PassportAuthentication {
 
                   return this._storageInstance
                     .addAccount(newUser)
-                    .then((accountId: string): Promise<void> => issueAccessKey(accountId));
+                    .then((accountId: string): q.Promise<void> => issueAccessKey(accountId));
                 default:
                   restErrorUtils.sendUnknownError(res, new Error(`Unrecognized action (${action})`), next);
                   return;
