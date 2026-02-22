@@ -441,8 +441,8 @@ export class PassportAuthentication {
     const options: any = {
       clientID: gitHubClientId,
       clientSecret: gitHubClientSecret,
-      callbackURL: this.getCallbackUrl(providerName),
-      scope: ["user:email"],
+      callbackURL: this.getCallbackUrl(providerName).trim(),
+      scope: ["user:email", "read:user"],
       state: true,
       customHeaders: {
         "User-Agent": "code-push-server",
@@ -450,14 +450,33 @@ export class PassportAuthentication {
       },
     };
 
-    passport.use(
-      new passportGitHub.Strategy(
-        options,
-        (accessToken: string, refreshToken: string, profile: passportGitHub.Profile, done: (err?: any, user?: any) => void): void => {
-          done(/*err*/ null, profile);
-        },
-      ),
+    const gitHubStrategy = new passportGitHub.Strategy(
+      options,
+      (accessToken: string, refreshToken: string, profile: passportGitHub.Profile, done: (err?: any, user?: any) => void): void => {
+        done(/*err*/ null, profile);
+      },
     );
+
+    // Override userProfile to add explicit logging for debugging
+    const originalUserProfile = gitHubStrategy.userProfile;
+    gitHubStrategy.userProfile = function (accessToken: string, done: (err?: any, profile?: any) => void) {
+      originalUserProfile.call(this, accessToken, (err: any, profile: any) => {
+        if (err) {
+          console.error("[GitHub Auth] Failed to fetch user profile details:", {
+            message: err.message,
+            oauthError: err.oauthError
+              ? {
+                  statusCode: err.oauthError.statusCode,
+                  data: err.oauthError.data,
+                }
+              : "No underlying OAuth error details",
+          });
+        }
+        done(err, profile);
+      });
+    };
+
+    passport.use(gitHubStrategy);
 
     this.setupCommonRoutes(router, providerName, strategyName);
   }
