@@ -27,7 +27,7 @@ services:
 
     volumes:
       # Map the physical host volume to the container
-      - ${STORAGE_DIR:-/storage}:/mnt/extra_storage
+      - storage_data:/storage
 
     networks:
       - codepush_network
@@ -47,6 +47,7 @@ services:
 
 volumes:
   redis_data:
+  storage_data:
 
 networks:
   codepush_network:
