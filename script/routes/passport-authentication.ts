@@ -385,10 +385,23 @@ export class PassportAuthentication {
 
               switch (action) {
                 case "login":
-                  const message: string = PassportAuthentication.isAccountRegistrationEnabled()
-                    ? "Account not found.<br/>Have you registered with the CLI?<br/>If you are registered but your email address has changed, please contact us."
-                    : "Account not found.<br/>Please <a href='http://microsoft.github.io/code-push/'>sign up for the beta</a>, and we will contact you when your account has been created!</a>";
-                  restErrorUtils.sendForbiddenPage(res, message);
+                  if (PassportAuthentication.isAccountRegistrationEnabled()) {
+                    const newUser: storage.Account = {
+                      createdTime: new Date().getTime(),
+                      email: emailAddress,
+                      name: user.displayName || (user as any).username || "Unknown",
+                    };
+                    PassportAuthentication.setProviderId(newUser, providerName, user.id);
+
+                    console.log(`[Auth] Auto-registering new user: ${emailAddress}`);
+                    return this._storageInstance
+                      .addAccount(newUser)
+                      .then((accountId: string): Promise<void> => issueAccessKey(accountId));
+                  }
+                  restErrorUtils.sendForbiddenPage(
+                    res,
+                    "Account not found.<br/>Registration is currently disabled. Please contact your administrator.",
+                  );
                   return;
                 case "link":
                   restErrorUtils.sendForbiddenPage(
