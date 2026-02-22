@@ -211,8 +211,8 @@ export class RedisManager {
       .then(() =>
         this._promisifiedMetricsClient.del(
           Utilities.getDeploymentKeyLabelsHash(deploymentKey),
-          Utilities.getDeploymentKeyClientsHash(deploymentKey)
-        )
+          Utilities.getDeploymentKeyClientsHash(deploymentKey),
+        ),
       )
       .then(() => {});
   }
@@ -302,7 +302,7 @@ export class RedisManager {
     }
 
     return this._setupMetricsClientPromise.then(() =>
-      this._promisifiedMetricsClient.hget(Utilities.getDeploymentKeyClientsHash(deploymentKey), clientUniqueId)
+      this._promisifiedMetricsClient.hget(Utilities.getDeploymentKeyClientsHash(deploymentKey), clientUniqueId),
     );
   }
 

@@ -375,7 +375,9 @@
       try {
         await api(`/apps/${encodeURIComponent(APP_NAME)}`, { method: 'DELETE' });
         showToast('Application deleted');
-        window.location.href = '/dashboard/apps';
+        setTimeout(() => {
+          window.location.href = '/dashboard/apps';
+        }, 1000);
       } catch (e) {
         // Error already handled by api() showToast
       }

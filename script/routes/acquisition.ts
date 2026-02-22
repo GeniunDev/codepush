@@ -35,7 +35,7 @@ function getUrlKey(originalUrl: string): string {
 function createResponseUsingStorage(
   req: express.Request,
   res: express.Response,
-  storage: storageTypes.Storage
+  storage: storageTypes.Storage,
 ): Promise<redis.CacheableResponse> {
   const deploymentKey: string = String(req.query.deploymentKey || req.query.deployment_key);
   const appVersion: string = String(req.query.appVersion || req.query.app_version);
@@ -94,18 +94,18 @@ function createResponseUsingStorage(
       errorUtils.sendMalformedRequestError(
         res,
         "An update check must include a valid deployment key - please check that your app has been " +
-          "configured correctly. To view available deployment keys, run 'code-push-standalone deployment ls <appName> -k'."
+          "configured correctly. To view available deployment keys, run 'code-push-standalone deployment ls <appName> -k'.",
       );
     } else if (!validationUtils.isValidAppVersionField(updateRequest.appVersion)) {
       errorUtils.sendMalformedRequestError(
         res,
         "An update check must include a binary version that conforms to the semver standard (e.g. '1.0.0'). " +
-          "The binary version is normally inferred from the App Store/Play Store version configured with your app."
+          "The binary version is normally inferred from the App Store/Play Store version configured with your app.",
       );
     } else {
       errorUtils.sendMalformedRequestError(
         res,
-        "An update check must include a valid deployment key and provide a semver-compliant app version."
+        "An update check must include a valid deployment key and provide a semver-compliant app version.",
       );
     }
 
@@ -172,7 +172,7 @@ export function getAcquisitionRouter(config: AcquisitionConfig): express.Router 
             giveRolloutPackage = rolloutSelector.isSelectedForRollout(
               clientUniqueId,
               cachedResponseObject.rollout,
-              releaseSpecificString
+              releaseSpecificString,
             );
           }
 
@@ -231,7 +231,7 @@ export function getAcquisitionRouter(config: AcquisitionConfig): express.Router 
           deploymentKey,
           labelOrAppVersion,
           previousDeploymentKey,
-          previousLabelOrAppVersion
+          previousLabelOrAppVersion,
         );
       }
 
@@ -248,7 +248,7 @@ export function getAcquisitionRouter(config: AcquisitionConfig): express.Router 
       if (!clientUniqueId) {
         return errorUtils.sendMalformedRequestError(
           res,
-          "A deploy status report must contain a valid appVersion, clientUniqueId and deploymentKey."
+          "A deploy status report must contain a valid appVersion, clientUniqueId and deploymentKey.",
         );
       }
 
@@ -278,7 +278,7 @@ export function getAcquisitionRouter(config: AcquisitionConfig): express.Router 
     if (!req.body || !deploymentKey || !req.body.label) {
       return errorUtils.sendMalformedRequestError(
         res,
-        "A download status report must contain a valid deploymentKey and package label."
+        "A download status report must contain a valid deploymentKey and package label.",
       );
     }
     return redisManager
