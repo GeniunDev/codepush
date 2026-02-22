@@ -9,7 +9,7 @@ import * as passportBearer from "passport-http-bearer";
 import * as passportGitHub from "passport-github2";
 import * as passportWindowsLive from "passport-windowslive";
 import * as q from "q";
-import * as superagent from "superagent"
+import * as superagent from "superagent";
 import rateLimit from "express-rate-limit";
 
 import * as converterUtils from "../utils/converter";
@@ -76,7 +76,7 @@ export class PassportAuthentication {
           })
           .catch((error: storage.StorageError): void => PassportAuthentication.storageErrorHandler(error, done))
           .done();
-      })
+      }),
     );
   }
 
@@ -87,13 +87,13 @@ export class PassportAuthentication {
           res
             .status(401)
             .send(
-              `The session or access key being used is invalid, please run "code-push-standalone login" again. If you are on an older version of the CLI, you may need to run "code-push-standalone logout" first to clear the session cache.`
+              `The session or access key being used is invalid, please run "code-push-standalone login" again. If you are on an older version of the CLI, you may need to run "code-push-standalone logout" first to clear the session cache.`,
             );
         } else if (err.code === storage.ErrorCode.Expired) {
           res
             .status(401)
             .send(
-              `The session or access key being used has expired, please run "code-push-standalone login" again. If you are on an older version of the CLI, you may need to run "code-push-standalone logout" first to clear the session cache.`
+              `The session or access key being used has expired, please run "code-push-standalone login" again. If you are on an older version of the CLI, you may need to run "code-push-standalone logout" first to clear the session cache.`,
             );
         } else {
           res.sendStatus(500);
@@ -256,11 +256,11 @@ export class PassportAuthentication {
         req.session["action"] = "login";
 
         passport.authenticate(strategyName, { session: false })(req, res, next);
-      }
+      },
     );
 
     router.get(
-      "/auth/register/" + providerName, 
+      "/auth/register/" + providerName,
       limiter,
       this._cookieSessionMiddleware,
       (req: Request, res: Response, next: (err?: any) => void): any => {
@@ -272,7 +272,7 @@ export class PassportAuthentication {
         req.session["action"] = "register";
 
         passport.authenticate(strategyName, { session: false })(req, res, next);
-      }
+      },
     );
 
     router.get(
@@ -283,7 +283,7 @@ export class PassportAuthentication {
         req.session["action"] = "link";
 
         passport.authenticate(strategyName, { session: false })(req, res, next);
-      }
+      },
     );
 
     router.get(
@@ -312,7 +312,7 @@ export class PassportAuthentication {
           restErrorUtils.sendUnknownError(
             res,
             new Error(`Couldn't get an email address from the ${providerName} OAuth provider for user ${JSON.stringify(user)}`),
-            next
+            next,
           );
           return;
         }
@@ -350,8 +350,8 @@ export class PassportAuthentication {
                   const message: string = isProviderValid
                     ? "You are already registered with the service using this authentication provider.<br/>Please cancel the registration process (Ctrl-C) on the CLI and login with your account."
                     : "You are already registered with the service using a different authentication provider." +
-                    "<br/>Please cancel the registration process (Ctrl-C) on the CLI and login with your registered account." +
-                    "<br/>Once logged in, you can optionally link this provider to your account.";
+                      "<br/>Please cancel the registration process (Ctrl-C) on the CLI and login with your registered account." +
+                      "<br/>Once logged in, you can optionally link this provider to your account.";
                   restErrorUtils.sendAlreadyExistsPage(res, message);
                   return;
                 case "link":
@@ -393,7 +393,7 @@ export class PassportAuthentication {
                   restErrorUtils.sendForbiddenPage(
                     res,
                     "We weren't able to link your account, because the primary email address registered with your provider does not match the one on your CodePush account." +
-                    "<br/>Please use a matching email address, or contact us if you'd like to change the email address on your CodePush account."
+                      "<br/>Please use a matching email address, or contact us if you'd like to change the email address on your CodePush account.",
                   );
                   return;
                 case "register":
@@ -411,14 +411,14 @@ export class PassportAuthentication {
                   restErrorUtils.sendUnknownError(res, new Error(`Unrecognized action (${action})`), next);
                   return;
               }
-            }
+            },
           )
           .catch((error: storage.StorageError): void => {
             error.message = `Unexpected failure with action ${action}, provider ${providerName}, email ${emailAddress}, and message: ${error.message}`;
             restErrorUtils.sendUnknownError(res, error, next);
           })
           .done();
-      }
+      },
     );
 
     router.get("/accesskey", limiter, this._cookieSessionMiddleware, (req: Request, res: Response): any => {
@@ -438,12 +438,16 @@ export class PassportAuthentication {
   private setupGitHubRoutes(router: Router, gitHubClientId: string, gitHubClientSecret: string): void {
     const providerName = PassportAuthentication.GITHUB_PROVIDER_NAME;
     const strategyName = "github";
-    const options: passportGitHub.IStrategyOptions = {
+    const options: any = {
       clientID: gitHubClientId,
       clientSecret: gitHubClientSecret,
       callbackURL: this.getCallbackUrl(providerName),
       scope: ["user:email"],
       state: true,
+      customHeaders: {
+        "User-Agent": "code-push-server",
+        Accept: "application/vnd.github.v3+json",
+      },
     };
 
     passport.use(
@@ -451,8 +455,8 @@ export class PassportAuthentication {
         options,
         (accessToken: string, refreshToken: string, profile: passportGitHub.Profile, done: (err?: any, user?: any) => void): void => {
           done(/*err*/ null, profile);
-        }
-      )
+        },
+      ),
     );
 
     this.setupCommonRoutes(router, providerName, strategyName);
@@ -474,8 +478,8 @@ export class PassportAuthentication {
         options,
         (accessToken: string, refreshToken: string, profile: passport.Profile, done: (error: any, user: any) => void): void => {
           done(/*err*/ null, profile);
-        }
-      )
+        },
+      ),
     );
 
     this.setupCommonRoutes(router, providerName, strategyName);
@@ -508,11 +512,11 @@ export class PassportAuthentication {
           profile: passport.Profile,
           accessToken: string,
           refreshToken: string,
-          done: (error: any, user: any) => void
+          done: (error: any, user: any) => void,
         ) => {
           done(/*err*/ null, profile);
-        }
-      )
+        },
+      ),
     );
 
     this.setupCommonRoutes(router, providerName, strategyName);
