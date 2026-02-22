@@ -182,6 +182,7 @@
     const API_KEY = '<%= accessKey %>';
     const PAGE = '<%= page %>';
     const APP_NAME = '<%= typeof appName !== "undefined" ? appName : "" %>';
+    const CURRENT_KEY_NAME = '<%= typeof currentKeyName !== "undefined" ? currentKeyName : "" %>';
     let state = { apps: [], activeApp: null };
 
     async function api(path, options = {}) {
@@ -190,6 +191,12 @@
           ...options,
           headers: { 'Authorization': `Bearer ${API_KEY}`, 'Content-Type': 'application/json', ...(options.headers || {}) }
         });
+
+        if (resp.status === 401) {
+          window.location.href = '/auth/logout';
+          return;
+        }
+
         if (!resp.ok) { const err = await resp.json(); showToast(err.message || 'Operation failed', 'error'); throw err; }
         if (resp.status === 204) return true;
         return await resp.json();
@@ -262,7 +269,34 @@
       if (accessKeys.length === 0) {
         t.innerHTML = `<tr><td colspan="4" class="px-8 py-20 text-center"><p class="text-slate-500">No active access tokens.</p></td></tr>`;
       } else {
-        t.innerHTML = accessKeys.map(k => `<tr class="group hover:bg-white/3 transition-colors"><td class="px-8 py-5 font-bold text-white">${k.friendlyName}</td><td class="px-8 py-5 text-sm text-slate-500">${new Date(k.createdTime).toLocaleDateString()}</td><td class="px-8 py-5 text-sm"><span class="${new Date(k.expires) < new Date() ? 'text-red-400' : 'text-slate-500'}">${new Date(k.expires).toLocaleDateString()}</span></td><td class="px-8 py-5 text-right"><button onclick="revokeKey('${k.friendlyName}')" class="text-slate-500 hover:text-red-400 transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td></tr>`).join('');
+        t.innerHTML = accessKeys.map(k => {
+          const isCurrent = k.friendlyName === CURRENT_KEY_NAME;
+          return `
+                    <tr class="group hover:bg-white/3 transition-colors ${isCurrent ? 'bg-indigo-500/5' : ''}">
+                        <td class="px-8 py-5">
+                            <div class="flex items-center gap-3">
+                                <span class="font-bold text-white">${k.friendlyName}</span>
+                                ${isCurrent ? '<span class="text-[9px] font-bold uppercase bg-indigo-500 text-white px-2 py-0.5 rounded shadow-lg shadow-indigo-500/20">You</span>' : ''}
+                            </div>
+                        </td>
+                        <td class="px-8 py-5 text-sm text-slate-500">${new Date(k.createdTime).toLocaleDateString()}</td>
+                        <td class="px-8 py-5 text-sm font-medium">
+                            <span class="${new Date(k.expires) < new Date() ? 'text-red-400' : 'text-slate-400'}">
+                                ${new Date(k.expires).toLocaleDateString()}
+                            </span>
+                        </td>
+                        <td class="px-8 py-5 text-right">
+                            ${isCurrent ?
+              `<button disabled class="text-slate-700 cursor-not-allowed" title="Cannot delete active session key">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>` :
+              `<button onclick="revokeKey('${k.friendlyName}')" class="text-slate-500 hover:text-red-400 transition-colors">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>`
+            }
+                        </td>
+                    </tr>`;
+        }).join('');
       }
       lucide.createIcons();
     }

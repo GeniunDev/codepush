@@ -442,23 +442,57 @@ export class PassportAuthentication {
       res.redirect("/dashboard/apps");
     });
 
-    router.get("/dashboard/apps", limiter, this._cookieSessionMiddleware, (req: Request, res: Response): any => {
+    router.get("/dashboard/apps", limiter, this._cookieSessionMiddleware, async (req: Request, res: Response): Promise<any> => {
       const accessKey: string = req.session["accessKey"];
       if (!accessKey) return res.redirect("/auth/login");
-      res.render("dashboard", { accessKey: accessKey, page: "apps" });
+
+      try {
+        const accountId = await this._storageInstance.getAccountIdFromAccessKey(accessKey);
+        const keys = await this._storageInstance.getAccessKeys(accountId);
+        const currentKey = keys.find((k) => k.name === accessKey);
+        res.render("dashboard", { accessKey: accessKey, page: "apps", currentKeyName: currentKey ? currentKey.friendlyName : "" });
+      } catch (e) {
+        res.redirect("/auth/login");
+      }
     });
 
-    router.get("/dashboard/tokens", limiter, this._cookieSessionMiddleware, (req: Request, res: Response): any => {
+    router.get("/dashboard/tokens", limiter, this._cookieSessionMiddleware, async (req: Request, res: Response): Promise<any> => {
       const accessKey: string = req.session["accessKey"];
       if (!accessKey) return res.redirect("/auth/login");
-      res.render("dashboard", { accessKey: accessKey, page: "tokens" });
+
+      try {
+        const accountId = await this._storageInstance.getAccountIdFromAccessKey(accessKey);
+        const keys = await this._storageInstance.getAccessKeys(accountId);
+        const currentKey = keys.find((k) => k.name === accessKey);
+        res.render("dashboard", { accessKey: accessKey, page: "tokens", currentKeyName: currentKey ? currentKey.friendlyName : "" });
+      } catch (e) {
+        res.redirect("/auth/login");
+      }
     });
 
-    router.get("/dashboard/apps/:appName", limiter, this._cookieSessionMiddleware, (req: Request, res: Response): any => {
-      const accessKey: string = req.session["accessKey"];
-      if (!accessKey) return res.redirect("/auth/login");
-      res.render("dashboard", { accessKey: accessKey, page: "app-detail", appName: req.params.appName });
-    });
+    router.get(
+      "/dashboard/apps/:appName",
+      limiter,
+      this._cookieSessionMiddleware,
+      async (req: Request, res: Response): Promise<any> => {
+        const accessKey: string = req.session["accessKey"];
+        if (!accessKey) return res.redirect("/auth/login");
+
+        try {
+          const accountId = await this._storageInstance.getAccountIdFromAccessKey(accessKey);
+          const keys = await this._storageInstance.getAccessKeys(accountId);
+          const currentKey = keys.find((k) => k.name === accessKey);
+          res.render("dashboard", {
+            accessKey: accessKey,
+            page: "app-detail",
+            appName: req.params.appName,
+            currentKeyName: currentKey ? currentKey.friendlyName : "",
+          });
+        } catch (e) {
+          res.redirect("/auth/login");
+        }
+      },
+    );
 
     router.get("/accesskey", limiter, this._cookieSessionMiddleware, (req: Request, res: Response): any => {
       const accessKey: string = req.session["accessKey"];
