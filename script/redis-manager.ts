@@ -143,6 +143,22 @@ export class RedisManager {
     return q.all([this._promisifiedOpsClient.ping(), this._promisifiedMetricsClient.ping()]).spread<void>(() => {});
   }
 
+  private _safeCall<T>(
+    client: redis.RedisClient,
+    promisifiedClient: PromisifiedRedisClient,
+    methodName: keyof PromisifiedRedisClient,
+    ...args: any[]
+  ): Promise<T> {
+    if (!this.isEnabled || !client.connected) {
+      return q.reject<T>(new Error("Redis client is not connected"));
+    }
+    try {
+      return (promisifiedClient[methodName] as any)(...args);
+    } catch (err) {
+      return q.reject<T>(err);
+    }
+  }
+
   /**
    * Get a response from cache if possible, otherwise return null.
    * @param expiryKey: An identifier to get cached response if not expired
@@ -150,18 +166,16 @@ export class RedisManager {
    * @return The object of type CacheableResponse
    */
   public getCachedResponse(expiryKey: string, url: string): Promise<CacheableResponse> {
-    if (!this.isEnabled) {
-      return q<CacheableResponse>(null);
-    }
-
-    return this._promisifiedOpsClient.hget(expiryKey, url).then((serializedResponse: string): Promise<CacheableResponse> => {
-      if (serializedResponse) {
-        const response = <CacheableResponse>JSON.parse(serializedResponse);
-        return q<CacheableResponse>(response);
-      } else {
-        return q<CacheableResponse>(null);
-      }
-    });
+    return this._safeCall<string>(this._opsClient, this._promisifiedOpsClient, "hget", expiryKey, url)
+      .then((serializedResponse: string): Promise<CacheableResponse> => {
+        if (serializedResponse) {
+          const response = <CacheableResponse>JSON.parse(serializedResponse);
+          return q<CacheableResponse>(response);
+        } else {
+          return q<CacheableResponse>(null);
+        }
+      })
+      .catch(() => q<CacheableResponse>(null));
   }
 
   /**
@@ -171,64 +185,62 @@ export class RedisManager {
    * @param response: The response to cache
    */
   public setCachedResponse(expiryKey: string, url: string, response: CacheableResponse): Promise<void> {
-    if (!this.isEnabled) {
-      return q<void>(null);
-    }
-
     // Store response in cache with a timed expiry
     const serializedResponse: string = JSON.stringify(response);
     let isNewKey: boolean;
-    return this._promisifiedOpsClient
-      .exists(expiryKey)
+    return this._safeCall<number>(this._opsClient, this._promisifiedOpsClient, "exists", expiryKey)
       .then((isExisting: number) => {
         isNewKey = !isExisting;
-        return this._promisifiedOpsClient.hset(expiryKey, url, serializedResponse);
+        return this._safeCall<number>(this._opsClient, this._promisifiedOpsClient, "hset", expiryKey, url, serializedResponse);
       })
       .then(() => {
         if (isNewKey) {
-          return this._promisifiedOpsClient.expire(expiryKey, RedisManager.DEFAULT_EXPIRY);
+          return this._safeCall<number>(this._opsClient, this._promisifiedOpsClient, "expire", expiryKey, RedisManager.DEFAULT_EXPIRY);
         }
       })
-      .then(() => {});
+      .then(() => {})
+      .catch(() => {});
   }
 
   // Atomically increments the status field for the deployment by 1,
   // or 1 by default. If the field does not exist, it will be created with the value of 1.
   public incrementLabelStatusCount(deploymentKey: string, label: string, status: string): Promise<void> {
-    if (!this.isEnabled) {
-      return q(<void>null);
-    }
-
     const hash: string = Utilities.getDeploymentKeyLabelsHash(deploymentKey);
     const field: string = Utilities.getLabelStatusField(label, status);
 
-    return this._setupMetricsClientPromise.then(() => this._promisifiedMetricsClient.hincrby(hash, field, 1)).then(() => {});
+    return this._setupMetricsClientPromise
+      .then(() => this._safeCall<number>(this._metricsClient, this._promisifiedMetricsClient, "hincrby", hash, field, 1))
+      .then(() => {})
+      .catch(() => {});
   }
 
   public clearMetricsForDeploymentKey(deploymentKey: string): Promise<void> {
-    if (!this.isEnabled) {
-      return q(<void>null);
-    }
-
     return this._setupMetricsClientPromise
       .then(() =>
-        this._promisifiedMetricsClient.del(
+        this._safeCall<number>(
+          this._metricsClient,
+          this._promisifiedMetricsClient,
+          "del",
           Utilities.getDeploymentKeyLabelsHash(deploymentKey),
           Utilities.getDeploymentKeyClientsHash(deploymentKey),
         ),
       )
-      .then(() => {});
+      .then(() => {})
+      .catch(() => {});
   }
 
   // Promised return value will look something like
   // { "v1:DeploymentSucceeded": 123, "v1:DeploymentFailed": 4, "v1:Active": 123 ... }
   public getMetricsWithDeploymentKey(deploymentKey: string): Promise<DeploymentMetrics> {
-    if (!this.isEnabled) {
-      return q(<DeploymentMetrics>null);
-    }
-
     return this._setupMetricsClientPromise
-      .then(() => this._promisifiedMetricsClient.hgetall(Utilities.getDeploymentKeyLabelsHash(deploymentKey)))
+      .then(() =>
+        this._safeCall<any>(
+          this._metricsClient,
+          this._promisifiedMetricsClient,
+          "hgetall",
+          Utilities.getDeploymentKeyLabelsHash(deploymentKey),
+        ),
+      )
       .then((metrics) => {
         // Redis returns numerical values as strings, handle parsing here.
         if (metrics) {
@@ -240,7 +252,8 @@ export class RedisManager {
         }
 
         return <DeploymentMetrics>metrics;
-      });
+      })
+      .catch(() => q<DeploymentMetrics>(null));
   }
 
   public recordUpdate(currentDeploymentKey: string, currentLabel: string, previousDeploymentKey?: string, previousLabel?: string) {
