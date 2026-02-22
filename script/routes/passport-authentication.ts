@@ -168,6 +168,11 @@ export class PassportAuthentication {
       this.setupAzureAdRoutes(router, microsoftClientId, microsoftClientSecret);
     }
 
+    router.get("/", this._cookieSessionMiddleware, (req: Request, res: Response): any => {
+      const isAuthenticated = !!(req.session && req.session["accessKey"]);
+      res.render("welcome", { isAuthenticated });
+    });
+
     router.get("/auth/login", this._cookieSessionMiddleware, (req: Request, res: Response): any => {
       req.session["hostname"] = req.query.hostname;
       res.render("authenticate", { action: "login", isGitHubAuthenticationEnabled, isMicrosoftAuthenticationEnabled });
