@@ -5,6 +5,7 @@ import * as cookieSession from "cookie-session";
 import { Request, Response, Router, RequestHandler } from "express";
 import * as passport from "passport";
 const passportActiveDirectory = require("passport-azure-ad");
+const passportOAuth2 = require("passport-oauth2");
 import * as passportBearer from "passport-http-bearer";
 import * as passportGitHub from "passport-github2";
 import * as passportWindowsLive from "passport-windowslive";
@@ -442,7 +443,7 @@ export class PassportAuthentication {
       clientID: gitHubClientId,
       clientSecret: gitHubClientSecret,
       callbackURL: this.getCallbackUrl(providerName).trim(),
-      scope: ["user:email", "read:user"],
+      scope: ["user:email"],
       state: true,
       customHeaders: {
         "User-Agent": "code-push-server",
@@ -458,21 +459,57 @@ export class PassportAuthentication {
     );
 
     // Override userProfile to add explicit logging for debugging
-    const originalUserProfile = gitHubStrategy.userProfile;
     gitHubStrategy.userProfile = function (accessToken: string, done: (err?: any, profile?: any) => void) {
-      originalUserProfile.call(this, accessToken, (err: any, profile: any) => {
+      this._oauth2.get("https://api.github.com/user", accessToken, (err: any, body: string, res: any) => {
         if (err) {
-          console.error("[GitHub Auth] Failed to fetch user profile details:", {
-            message: err.message,
-            oauthError: err.oauthError
-              ? {
-                  statusCode: err.oauthError.statusCode,
-                  data: err.oauthError.data,
-                }
-              : "No underlying OAuth error details",
-          });
+          console.error("[GitHub Auth] Failed to fetch basic profile:", err);
+          return done(new (passportOAuth2 as any).InternalOAuthError("Failed to fetch user profile", err));
         }
-        done(err, profile);
+
+        try {
+          const json = JSON.parse(body);
+          const profile: any = {
+            provider: "github",
+            id: json.id,
+            displayName: json.name,
+            username: json.login,
+            profileUrl: json.html_url,
+            emails: [],
+            _raw: body,
+            _json: json,
+          };
+
+          if (json.email) {
+            profile.emails.push({ value: json.email });
+          }
+
+          // Try to fetch all emails if possible
+          this._oauth2.get("https://api.github.com/user/emails", accessToken, (emailsErr: any, emailsBody: string) => {
+            if (emailsErr) {
+              if (emailsErr.statusCode === 403) {
+                console.warn("[GitHub Auth] 403 Forbidden when fetching private emails. Proceeding with basic profile info.");
+                return done(null, profile);
+              }
+              return done(new (passportOAuth2 as any).InternalOAuthError("Failed to fetch user emails", emailsErr));
+            }
+
+            try {
+              const emailsJson = JSON.parse(emailsBody);
+              if (Array.isArray(emailsJson)) {
+                profile.emails = emailsJson.map((e: any) => ({
+                  value: e.email,
+                  primary: e.primary,
+                  verified: e.verified,
+                }));
+              }
+            } catch (e) {
+              // Ignore email parsing errors
+            }
+            done(null, profile);
+          });
+        } catch (e) {
+          done(e);
+        }
       });
     };
 
