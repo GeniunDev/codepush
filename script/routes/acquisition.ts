@@ -193,7 +193,7 @@ export function getAcquisitionRouter(config: AcquisitionConfig): express.Router 
         })
         .then(() => {
           if (redisError) {
-            throw redisError;
+            console.error("Redis cache error:", redisError);
           }
         })
         .catch((error: storageTypes.StorageError) => errorUtils.restErrorHandler(res, error, next))
@@ -242,7 +242,10 @@ export function getAcquisitionRouter(config: AcquisitionConfig): express.Router 
             redisManager.removeDeploymentKeyClientActiveLabel(previousDeploymentKey, clientUniqueId);
           }
         })
-        .catch((error: any) => errorUtils.sendUnknownError(res, error, next))
+        .catch((error: any) => {
+          console.error("Redis metrics error (reportStatusDeploy):", error);
+          res.sendStatus(200); // Send 200 even if metrics logging fails
+        })
         .done();
     } else {
       if (!clientUniqueId) {
@@ -268,7 +271,10 @@ export function getAcquisitionRouter(config: AcquisitionConfig): express.Router 
         .then(() => {
           res.sendStatus(200);
         })
-        .catch((error: any) => errorUtils.sendUnknownError(res, error, next))
+        .catch((error: any) => {
+          console.error("Redis metrics error (reportStatusDeploy - legacy):", error);
+          res.sendStatus(200);
+        })
         .done();
     }
   };
@@ -286,7 +292,10 @@ export function getAcquisitionRouter(config: AcquisitionConfig): express.Router 
       .then(() => {
         res.sendStatus(200);
       })
-      .catch((error: any) => errorUtils.sendUnknownError(res, error, next))
+      .catch((error: any) => {
+        console.error("Redis metrics error (reportStatusDownload):", error);
+        res.sendStatus(200);
+      })
       .done();
   };
 

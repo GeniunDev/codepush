@@ -114,21 +114,45 @@ export class RedisManager {
       this._opsClient = redis.createClient(redisConfig);
       this._metricsClient = redis.createClient(redisConfig);
       this._opsClient.on("error", (err: Error) => {
-        console.error(err);
+        console.error("Redis ops client error:", err.message);
       });
 
       this._metricsClient.on("error", (err: Error) => {
-        console.error(err);
+        console.error("Redis metrics client error:", err.message);
       });
 
       this._promisifiedOpsClient = new PromisifiedRedisClient(this._opsClient);
       this._promisifiedMetricsClient = new PromisifiedRedisClient(this._metricsClient);
-      this._setupMetricsClientPromise = this._promisifiedMetricsClient
-        .select(RedisManager.METRICS_DB)
-        .then(() => this._promisifiedMetricsClient.set("health", "health"));
+      // setupMetricsClientPromise is now initialized lazily in ensureMetricsSetup
+      this._setupMetricsClientPromise = null;
     } else {
       console.warn("No REDIS_HOST or REDIS_PORT environment variable configured.");
     }
+  }
+
+  private ensureMetricsSetup(): Promise<void> {
+    if (!this.isEnabled) {
+      return q.reject<void>(new Error("Redis manager is not enabled"));
+    }
+
+    if (this._setupMetricsClientPromise) {
+      return this._setupMetricsClientPromise;
+    }
+
+    if (!this._metricsClient.ready) {
+      return q.reject<void>(new Error("Redis metrics client is not ready"));
+    }
+
+    this._setupMetricsClientPromise = q(<void>null)
+      .then(() => this._promisifiedMetricsClient.select(RedisManager.METRICS_DB))
+      .then(() => this._promisifiedMetricsClient.set("health", "health"))
+      .then(() => {})
+      .catch((err) => {
+        this._setupMetricsClientPromise = null; // Allow retry
+        throw err;
+      });
+
+    return this._setupMetricsClientPromise;
   }
 
   public get isEnabled(): boolean {
@@ -149,11 +173,15 @@ export class RedisManager {
     methodName: keyof PromisifiedRedisClient,
     ...args: any[]
   ): Promise<T> {
-    if (!this.isEnabled || !client.connected) {
-      return q.reject<T>(new Error("Redis client is not connected"));
+    if (!this.isEnabled || !client || !client.ready) {
+      return q.reject<T>(new Error("Redis client is not ready"));
     }
     try {
-      return (promisifiedClient[methodName] as any)(...args);
+      const func = promisifiedClient[methodName] as any;
+      if (typeof func !== "function") {
+        return q.reject<T>(new Error(`Redis method ${String(methodName)} is not promisified`));
+      }
+      return func(...args);
     } catch (err) {
       return q.reject<T>(err);
     }
@@ -208,14 +236,14 @@ export class RedisManager {
     const hash: string = Utilities.getDeploymentKeyLabelsHash(deploymentKey);
     const field: string = Utilities.getLabelStatusField(label, status);
 
-    return this._setupMetricsClientPromise
+    return this.ensureMetricsSetup()
       .then(() => this._safeCall<number>(this._metricsClient, this._promisifiedMetricsClient, "hincrby", hash, field, 1))
       .then(() => {})
       .catch(() => {});
   }
 
   public clearMetricsForDeploymentKey(deploymentKey: string): Promise<void> {
-    return this._setupMetricsClientPromise
+    return this.ensureMetricsSetup()
       .then(() =>
         this._safeCall<number>(
           this._metricsClient,
@@ -232,7 +260,7 @@ export class RedisManager {
   // Promised return value will look something like
   // { "v1:DeploymentSucceeded": 123, "v1:DeploymentFailed": 4, "v1:Active": 123 ... }
   public getMetricsWithDeploymentKey(deploymentKey: string): Promise<DeploymentMetrics> {
-    return this._setupMetricsClientPromise
+    return this.ensureMetricsSetup()
       .then(() =>
         this._safeCall<any>(
           this._metricsClient,
@@ -256,12 +284,13 @@ export class RedisManager {
       .catch(() => q<DeploymentMetrics>(null));
   }
 
-  public recordUpdate(currentDeploymentKey: string, currentLabel: string, previousDeploymentKey?: string, previousLabel?: string) {
-    if (!this.isEnabled) {
-      return q(<void>null);
-    }
-
-    return this._setupMetricsClientPromise
+  public recordUpdate(
+    currentDeploymentKey: string,
+    currentLabel: string,
+    previousDeploymentKey?: string,
+    previousLabel?: string,
+  ): Promise<void> {
+    return this.ensureMetricsSetup()
       .then(() => {
         const batchClient: any = (<any>this._metricsClient).batch();
         const currentDeploymentKeyLabelsHash: string = Utilities.getDeploymentKeyLabelsHash(currentDeploymentKey);
@@ -276,28 +305,34 @@ export class RedisManager {
           batchClient.hincrby(previousDeploymentKeyLabelsHash, previousLabelActiveField, /* incrementBy */ -1);
         }
 
-        return this._promisifiedMetricsClient.execBatch(batchClient);
+        return this._safeCall<any[]>(this._metricsClient, this._promisifiedMetricsClient, "execBatch", batchClient);
       })
-      .then(() => {});
+      .then(() => {})
+      .catch(() => {});
   }
 
-  public removeDeploymentKeyClientActiveLabel(deploymentKey: string, clientUniqueId: string) {
-    if (!this.isEnabled) {
-      return q(<void>null);
-    }
-
-    return this._setupMetricsClientPromise
+  public removeDeploymentKeyClientActiveLabel(deploymentKey: string, clientUniqueId: string): Promise<void> {
+    return this.ensureMetricsSetup()
       .then(() => {
         const deploymentKeyClientsHash: string = Utilities.getDeploymentKeyClientsHash(deploymentKey);
-        return this._promisifiedMetricsClient.hdel(deploymentKeyClientsHash, clientUniqueId);
+        return this._safeCall<number>(
+          this._metricsClient,
+          this._promisifiedMetricsClient,
+          "hdel",
+          deploymentKeyClientsHash,
+          clientUniqueId,
+        );
       })
-      .then(() => {});
+      .then(() => {})
+      .catch(() => {});
   }
 
   public invalidateCache(expiryKey: string): Promise<void> {
     if (!this.isEnabled) return q(<void>null);
 
-    return this._promisifiedOpsClient.del(expiryKey).then(() => {});
+    return this._safeCall<void>(this._opsClient, this._promisifiedOpsClient, "del", expiryKey)
+      .then(() => {})
+      .catch(() => {});
   }
 
   // For unit tests only
@@ -306,29 +341,38 @@ export class RedisManager {
     if (!this._opsClient && !this._metricsClient) return promiseChain;
 
     return promiseChain
-      .then(() => this._opsClient && this._promisifiedOpsClient.quit())
-      .then(() => this._metricsClient && this._promisifiedMetricsClient.quit())
-      .then(() => <void>null);
+      .then(() => {
+        if (this._opsClient && this._opsClient.connected) {
+          return this._promisifiedOpsClient.quit();
+        }
+      })
+      .then(() => {
+        if (this._metricsClient && this._metricsClient.connected) {
+          return this._promisifiedMetricsClient.quit();
+        }
+      })
+      .then(() => <void>null)
+      .catch(() => {});
   }
 
   /* deprecated */
   public getCurrentActiveLabel(deploymentKey: string, clientUniqueId: string): Promise<string> {
-    if (!this.isEnabled) {
-      return q(<string>null);
-    }
-
-    return this._setupMetricsClientPromise.then(() =>
-      this._promisifiedMetricsClient.hget(Utilities.getDeploymentKeyClientsHash(deploymentKey), clientUniqueId),
-    );
+    return this.ensureMetricsSetup()
+      .then(() =>
+        this._safeCall<string>(
+          this._metricsClient,
+          this._promisifiedMetricsClient,
+          "hget",
+          Utilities.getDeploymentKeyClientsHash(deploymentKey),
+          clientUniqueId,
+        ),
+      )
+      .catch(() => q<string>(null));
   }
 
   /* deprecated */
   public updateActiveAppForClient(deploymentKey: string, clientUniqueId: string, toLabel: string, fromLabel?: string): Promise<void> {
-    if (!this.isEnabled) {
-      return q(<void>null);
-    }
-
-    return this._setupMetricsClientPromise
+    return this.ensureMetricsSetup()
       .then(() => {
         const batchClient: any = (<any>this._metricsClient).batch();
         const deploymentKeyLabelsHash: string = Utilities.getDeploymentKeyLabelsHash(deploymentKey);
@@ -342,8 +386,9 @@ export class RedisManager {
           batchClient.hincrby(deploymentKeyLabelsHash, fromLabelActiveField, /* incrementBy */ -1);
         }
 
-        return this._promisifiedMetricsClient.execBatch(batchClient);
+        return this._safeCall<any[]>(this._metricsClient, this._promisifiedMetricsClient, "execBatch", batchClient);
       })
-      .then(() => {});
+      .then(() => {})
+      .catch(() => {});
   }
 }
