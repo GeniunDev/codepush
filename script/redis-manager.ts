@@ -107,6 +107,9 @@ export class RedisManager {
           // Note: Node defaults CA's to those trusted by Mozilla
           rejectUnauthorized: true,
         },
+        enable_offline_queue: false,
+        retry_max_delay: 5000,
+        max_attempts: 5,
       };
       this._opsClient = redis.createClient(redisConfig);
       this._metricsClient = redis.createClient(redisConfig);
