@@ -128,10 +128,6 @@ export function start(done: (err?: any, server?: express.Express, storage?: Stor
       // Before all other middleware to ensure all requests are tracked.
       app.use(appInsights.router());
 
-      app.get("/", (req: express.Request, res: express.Response, next: (err?: Error) => void): any => {
-        res.render("welcome");
-      });
-
       app.set("etag", false);
       app.set("views", __dirname + "/views");
       app.set("view engine", "ejs");
