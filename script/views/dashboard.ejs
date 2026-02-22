@@ -203,6 +203,7 @@
                         <th class="px-8 py-4 text-xs">Release Time</th>
                         <th class="px-8 py-4 text-xs">App Version</th>
                         <th class="px-8 py-4 text-xs">Description</th>
+                        <th class="px-8 py-4 text-xs">Stats</th>
                         <th class="px-8 py-4 text-xs">Status</th>
                         <th class="px-8 py-4 text-xs text-right">Actions</th>
                       </tr>
@@ -260,7 +261,7 @@
     const APP_NAME = '<%= typeof appName !== "undefined" ? appName : "" %>';
     const DEPLOYMENT_NAME = '<%= typeof deploymentName !== "undefined" ? deploymentName : "" %>';
     const CURRENT_KEY_NAME = '<%= typeof currentKeyName !== "undefined" ? currentKeyName : "" %>';
-    let state = { apps: [], activeApp: null, deployments: [] };
+    let state = { apps: [], activeApp: null, deployments: [], history: [], metrics: {} };
 
     async function api(path, options = {}) {
       try {
@@ -371,14 +372,19 @@
       if (content) content.classList.add('hidden');
 
       try {
-        const history = await api(`/apps/${APP_NAME}/deployments/${DEPLOYMENT_NAME}/history`);
-        state.history = history.history || [];
+        const [historyData, metricsData] = await Promise.all([
+          api(`/apps/${APP_NAME}/deployments/${DEPLOYMENT_NAME}/history`),
+          api(`/apps/${APP_NAME}/deployments/${DEPLOYMENT_NAME}/metrics`)
+        ]);
+
+        state.history = historyData.history || [];
+        state.metrics = metricsData.metrics || {};
 
         if (loader) loader.classList.add('hidden');
         if (content) content.classList.remove('hidden');
         renderHistory();
       } catch (e) {
-        showToast('Failed to load deployment history', 'error');
+        showToast('Failed to load deployment data', 'error');
       }
     }
 
@@ -391,6 +397,7 @@
 
       t.innerHTML = state.history.map(p => {
         const isCurrentlyDisabled = p.isDisabled;
+        const metrics = state.metrics[p.label] || { active: 0, installed: 0, failed: 0, downloaded: 0 };
         return `
           <tr class="group hover:bg-white/3 transition-colors">
             <td class="px-8 py-5">
@@ -401,7 +408,19 @@
             </td>
             <td class="px-8 py-5 text-sm font-medium text-white">${p.appVersion}</td>
             <td class="px-8 py-5 text-sm text-slate-500 max-w-xs truncate" title="${p.description || ''}">
-              ${p.description || '<span class="italic opacity-50">No description</span>'}
+              ${p.description || '<span class="italic opacity-50 text-[10px]">No description</span>'}
+            </td>
+            <td class="px-8 py-5">
+              <div class="flex flex-col gap-0.5">
+                <div class="flex items-center gap-3 text-[10px] font-bold uppercase tracking-wider">
+                  <span class="text-green-400/80">Success: ${metrics.installed}</span>
+                  <span class="text-red-400/80">Fail: ${metrics.failed}</span>
+                </div>
+                <div class="flex items-center gap-3 text-[10px] font-bold uppercase tracking-wider opacity-60">
+                  <span class="text-indigo-400/80">Active: ${metrics.active}</span>
+                  <span class="text-slate-400/80">DL: ${metrics.downloaded}</span>
+                </div>
+              </div>
             </td>
             <td class="px-8 py-5">
               <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${isCurrentlyDisabled ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'}">
