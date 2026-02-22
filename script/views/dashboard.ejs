@@ -165,20 +165,62 @@
                     <button onclick="openModal('addCollaborator')"
                       class="text-indigo-400 text-xs font-bold hover:text-indigo-300">Invite</button>
                   </div>
-                  <div class="space-y-4 text-sm" id="collaborators-list"></div>
                 </div>
               </div>
             </div>
           </div>
-          <% } %>
+          <% } else if (page==='deployment-detail' ) { %>
+            <div id="full-page-loader" class="flex flex-col items-center justify-center py-40 animate-fade-in">
+              <div class="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin mb-6">
+              </div>
+              <p class="text-indigo-400 font-bold uppercase tracking-widest text-sm opacity-50">Loading History...</p>
+            </div>
+            <div id="deployment-detail-content" class="animate-fade-in hidden">
+              <a href="/dashboard/apps/<%= appName %>"
+                class="mb-6 text-slate-400 hover:text-white flex items-center gap-2 transition-colors inline-flex">
+                <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to <%= appName %>
+              </a>
+              <div class="glass p-8 rounded-3xl">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+                  <div>
+                    <h2 class="text-2xl font-bold text-white">
+                      <%= deploymentName %> Releases
+                    </h2>
+                    <p class="text-slate-500 text-sm mt-1">Showing package history and metrics</p>
+                  </div>
+                  <div class="flex gap-3">
+                    <button onclick="loadDeploymentDetails()"
+                      class="p-3 bg-white/5 border border-white/10 rounded-xl text-slate-400 hover:text-white transition-colors">
+                      <i data-lucide="rotate-cw" class="w-5 h-5"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="overflow-x-auto -mx-8">
+                  <table class="w-full text-left">
+                    <thead class="bg-white/5 text-slate-400 text-xs font-bold uppercase tracking-widest">
+                      <tr>
+                        <th class="px-8 py-4 text-xs">Label</th>
+                        <th class="px-8 py-4 text-xs">Release Time</th>
+                        <th class="px-8 py-4 text-xs">App Version</th>
+                        <th class="px-8 py-4 text-xs">Description</th>
+                        <th class="px-8 py-4 text-xs">Status</th>
+                        <th class="px-8 py-4 text-xs text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="history-table" class="divide-y divide-white/5"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+            <% } %>
 
-            <!-- Mobile FAB (Only on Apps page) -->
-            <% if (page==='apps' ) { %>
-              <button onclick="openModal('createApp')"
-                class="fixed bottom-8 right-8 md:hidden bg-indigo-600 text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition-all active:scale-95 z-40 hover:scale-110">
-                <i data-lucide="plus" class="w-6 h-6 text-white" stroke-width="3"></i>
-              </button>
-              <% } %>
+              <!-- Mobile FAB (Only on Apps page) -->
+              <% if (page==='apps' ) { %>
+                <button onclick="openModal('createApp')"
+                  class="fixed bottom-8 right-8 md:hidden bg-indigo-600 text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition-all active:scale-95 z-40 hover:scale-110">
+                  <i data-lucide="plus" class="w-6 h-6 text-white" stroke-width="3"></i>
+                </button>
+                <% } %>
 
 
   </main>
@@ -216,8 +258,9 @@
     const API_KEY = '<%= accessKey %>';
     const PAGE = '<%= page %>';
     const APP_NAME = '<%= typeof appName !== "undefined" ? appName : "" %>';
+    const DEPLOYMENT_NAME = '<%= typeof deploymentName !== "undefined" ? deploymentName : "" %>';
     const CURRENT_KEY_NAME = '<%= typeof currentKeyName !== "undefined" ? currentKeyName : "" %>';
-    let state = { apps: [], activeApp: null };
+    let state = { apps: [], activeApp: null, deployments: [] };
 
     async function api(path, options = {}) {
       try {
@@ -270,6 +313,7 @@
       if (PAGE === 'apps') refreshApps();
       if (PAGE === 'tokens') refreshKeys();
       if (PAGE === 'app-detail') loadAppDetails();
+      if (PAGE === 'deployment-detail') loadDeploymentDetails();
     }
 
     async function refreshApps() {
@@ -304,7 +348,7 @@
       container.innerHTML = `<div class="flex items-center justify-center py-20 animate-pulse text-indigo-400"><div class="flex flex-col items-center gap-4 text-sm font-bold uppercase tracking-widest opacity-50"><div class="w-8 h-8 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>Loading Deployments</div></div>`;
       const { deployments } = await api(`/apps/${app.name}/deployments`);
 
-      container.innerHTML = `<div class="flex justify-between items-center mb-8"><h2 class="text-xl font-bold text-white">Environments</h2><button class="text-indigo-400 text-sm font-bold hover:text-indigo-300">Manage Keys</button></div><div class="space-y-4">${deployments.map(d => `<div class="bg-white/3 rounded-2xl p-6 border border-white/5 flex flex-col xl:flex-row xl:items-center justify-between gap-4"><div class="flex-1 min-w-0"><h4 class="text-lg font-bold text-white flex items-center gap-2">${d.name} <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span></h4><div class="mt-4 font-mono text-[11px] text-slate-500 bg-black/40 px-3 py-2 rounded-lg border border-white/5 flex flex-wrap sm:flex-nowrap items-center gap-3 w-full sm:w-fit overflow-hidden"><span class="truncate">Deployment Key: ${d.key}</span><button onclick="navigator.clipboard.writeText('${d.key}'); showToast('Key copied to clipboard')" class="shrink-0 text-slate-500 hover:text-white transition-colors"><i data-lucide="copy" class="w-3.5 h-3.5"></i></button></div></div><button class="w-full xl:w-auto shrink-0 bg-indigo-500/5 hover:bg-indigo-500/10 text-indigo-400 font-bold px-4 py-3 xl:py-2 rounded-xl text-xs transition-colors border border-indigo-500/20 whitespace-nowrap mt-2 xl:mt-0">View Release Logs</button></div>`).join('')}</div>`;
+      container.innerHTML = `<div class="flex justify-between items-center mb-8"><h2 class="text-xl font-bold text-white">Environments</h2><button class="text-indigo-400 text-sm font-bold hover:text-indigo-300">Manage Keys</button></div><div class="space-y-4">${deployments.map(d => `<div class="bg-white/3 rounded-2xl p-6 border border-white/5 flex flex-col xl:flex-row xl:items-center justify-between gap-4"><div class="flex-1 min-w-0"><h4 class="text-lg font-bold text-white flex items-center gap-2">${d.name} <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span></h4><div class="mt-4 font-mono text-[11px] text-slate-500 bg-black/40 px-3 py-2 rounded-lg border border-white/5 flex flex-wrap sm:flex-nowrap items-center gap-3 w-full sm:w-fit overflow-hidden"><span class="truncate">Deployment Key: ${d.key}</span><button onclick="navigator.clipboard.writeText('${d.key}'); showToast('Key copied to clipboard')" class="shrink-0 text-slate-500 hover:text-white transition-colors"><i data-lucide="copy" class="w-3.5 h-3.5"></i></button></div></div><a href="/dashboard/apps/${app.name}/deployments/${d.name}" class="w-full xl:w-auto shrink-0 bg-indigo-500/5 hover:bg-indigo-500/10 text-indigo-400 font-bold px-4 py-3 xl:py-2 rounded-xl text-xs transition-colors border border-indigo-500/20 whitespace-nowrap mt-2 xl:mt-0 text-center">View Release Logs</a></div>`).join('')}</div>`;
 
       document.getElementById('app-meta').innerHTML = `<div class="flex justify-between border-b border-white/5 pb-3"><span class="text-slate-500">Platform</span><span class="text-white font-medium">${app.platform || 'Cross-Platform'}</span></div><div class="flex justify-between pt-1"><span class="text-slate-500">Target OS</span><span class="text-white font-medium">${app.os || 'Unknown'}</span></div>`;
       renderCollaborators(app);
@@ -318,6 +362,83 @@
         c.innerHTML = Object.entries(collaborators).map(([email, data]) => `<div class="flex items-center justify-between group"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-[10px] font-bold text-indigo-400">${email[0].toUpperCase()}</div><div><div class="text-xs font-semibold text-white">${email}</div><div class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">${data.permission}</div></div></div>${!data.isCurrentAccount ? `<button onclick="removeCollaborator('${email}')" class="text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"><i data-lucide="x-circle" class="w-4 h-4"></i></button>` : ''}</div>`).join('');
       } catch (e) { c.innerHTML = '<p class="text-red-400 text-xs">Failed to load team.</p>'; }
       lucide.createIcons();
+    }
+
+    async function loadDeploymentDetails() {
+      const loader = document.getElementById('full-page-loader');
+      const content = document.getElementById('deployment-detail-content');
+      if (loader) loader.classList.remove('hidden');
+      if (content) content.classList.add('hidden');
+
+      try {
+        const history = await api(`/apps/${APP_NAME}/deployments/${DEPLOYMENT_NAME}/history`);
+        state.history = history.history || [];
+
+        if (loader) loader.classList.add('hidden');
+        if (content) content.classList.remove('hidden');
+        renderHistory();
+      } catch (e) {
+        showToast('Failed to load deployment history', 'error');
+      }
+    }
+
+    function renderHistory() {
+      const t = document.getElementById('history-table');
+      if (!state.history || state.history.length === 0) {
+        t.innerHTML = `<tr><td colspan="6" class="px-8 py-20 text-center"><p class="text-slate-500">No releases found for this deployment.</p></td></tr>`;
+        return;
+      }
+
+      t.innerHTML = state.history.map(p => {
+        const isCurrentlyDisabled = p.isDisabled;
+        return `
+          <tr class="group hover:bg-white/3 transition-colors">
+            <td class="px-8 py-5">
+              <span class="font-mono text-sm font-bold text-indigo-400">${p.label}</span>
+            </td>
+            <td class="px-8 py-5 text-sm text-slate-400">
+              ${new Date(p.uploadTime).toLocaleString()}
+            </td>
+            <td class="px-8 py-5 text-sm font-medium text-white">${p.appVersion}</td>
+            <td class="px-8 py-5 text-sm text-slate-500 max-w-xs truncate" title="${p.description || ''}">
+              ${p.description || '<span class="italic opacity-50">No description</span>'}
+            </td>
+            <td class="px-8 py-5">
+              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${isCurrentlyDisabled ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'}">
+                <span class="w-1.5 h-1.5 rounded-full ${isCurrentlyDisabled ? 'bg-red-500' : 'bg-green-500'}"></span>
+                ${isCurrentlyDisabled ? 'Disabled' : 'Enabled'}
+              </span>
+            </td>
+            <td class="px-8 py-5 text-right">
+              <button onclick="toggleRelease('${p.label}', ${isCurrentlyDisabled})"
+                class="px-4 py-2 rounded-xl text-xs font-bold transition-all border ${isCurrentlyDisabled ? 'bg-indigo-600 hover:bg-indigo-500 text-white border-transparent' : 'bg-white/5 hover:bg-white/10 text-slate-300 border-white/10'}">
+                ${isCurrentlyDisabled ? 'Enable' : 'Disable'}
+              </button>
+            </td>
+          </tr>
+        `;
+      }).reverse().join('');
+      lucide.createIcons();
+    }
+
+    async function toggleRelease(label, shouldEnable) {
+      if (!(await showConfirm(shouldEnable ? 'Enable Release?' : 'Disable Release?', `Are you sure you want to ${shouldEnable ? 'enable' : 'disable'} release ${label}? Clients will ${shouldEnable ? 'start' : 'stop'} receiving this update.`))) return;
+
+      try {
+        await api(`/apps/${APP_NAME}/deployments/${DEPLOYMENT_NAME}/release`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            packageInfo: {
+              label: label,
+              isDisabled: !shouldEnable
+            }
+          })
+        });
+        showToast(`Release ${label} ${shouldEnable ? 'enabled' : 'disabled'}`);
+        loadDeploymentDetails();
+      } catch (e) {
+        // Error already handled
+      }
     }
 
     async function refreshKeys() {

@@ -495,6 +495,31 @@ export class PassportAuthentication {
       }
     });
 
+    router.get(
+      "/dashboard/apps/:appName/deployments/:deploymentName",
+      limiter,
+      this._cookieSessionMiddleware,
+      async (req: Request, res: Response) => {
+        const accessKey: string = req.session["accessKey"];
+        if (!accessKey) return res.redirect("/auth/login");
+
+        try {
+          const accountId = await this._storageInstance.getAccountIdFromAccessKey(accessKey);
+          const keys = await this._storageInstance.getAccessKeys(accountId);
+          const currentKey = keys.find((k) => k.name === accessKey);
+          res.render("dashboard", {
+            accessKey: accessKey,
+            page: "deployment-detail",
+            appName: req.params.appName,
+            deploymentName: req.params.deploymentName,
+            currentKeyName: currentKey ? currentKey.friendlyName : "",
+          });
+        } catch (e) {
+          res.redirect("/auth/login");
+        }
+      },
+    );
+
     router.get("/accesskey", limiter, this._cookieSessionMiddleware, (req: Request, res: Response): any => {
       const accessKey: string = req.session["accessKey"];
       const isNewAccount: boolean = req.session["isNewAccount"];
