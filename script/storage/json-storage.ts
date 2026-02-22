@@ -78,10 +78,10 @@ export class JsonStorage implements storage.Storage {
               this.accessKeyToAccountMap = obj.accessKeyToAccountMap || {};
               this.accountToAccessKeysMap = obj.accountToAccessKeysMap || {};
               this.accessKeyNameToAccountIdMap = obj.accessKeyNameToAccountIdMap || {};
-            }.bind(this)
+            }.bind(this),
           );
         }
-      }.bind(this)
+      }.bind(this),
     );
   }
 
@@ -243,7 +243,7 @@ export class JsonStorage implements storage.Storage {
       throw new Error("Wrong accountId");
     }
 
-    const deployments = this.appToDeploymentsMap[appId].slice();
+    const deployments = (this.appToDeploymentsMap[appId] || []).slice();
     const promises: any[] = [];
     deployments.forEach((deploymentId: string) => {
       promises.push(this.removeDeployment(accountId, appId, deploymentId));

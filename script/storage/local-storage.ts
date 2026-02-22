@@ -241,7 +241,7 @@ export class LocalStorage implements storage.Storage {
       throw new Error("Wrong accountId");
     }
 
-    const deployments = this.appToDeploymentsMap[appId].slice();
+    const deployments = (this.appToDeploymentsMap[appId] || []).slice();
     const promises: any[] = [];
     deployments.forEach((deploymentId: string) => {
       promises.push(this.removeDeployment(accountId, appId, deploymentId));

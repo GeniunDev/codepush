@@ -360,8 +360,10 @@ export function getManagementRouter(config: ManagementConfig): Router {
         return storage.removeApp(accountId, appId);
       })
       .then(() => {
+        if (invalidationError) {
+          console.error("Cache invalidation error during app deletion:", invalidationError);
+        }
         res.sendStatus(204);
-        if (invalidationError) throw invalidationError;
       })
       .catch((error: error.CodePushError) => errorUtils.restErrorHandler(res, error, next))
       .done();
@@ -1183,8 +1185,10 @@ export function getManagementRouter(config: ManagementConfig): Router {
     },
   );
 
-  function invalidateCachedPackage(deploymentKey: string): Q.Promise<void> {
-    return redisManager.invalidateCache(redis.Utilities.getDeploymentKeyHash(deploymentKey));
+  function invalidateCachedPackage(deploymentKey: string): Promise<void> {
+    return redisManager
+      .invalidateCache(redis.Utilities.getDeploymentKeyHash(deploymentKey))
+      .timeout(2000, "Cache invalidation timed out");
   }
 
   function throwIfInvalidPermissions(app: storageTypes.App, requiredPermission: string): boolean {
