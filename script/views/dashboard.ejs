@@ -24,9 +24,27 @@
     </style>
 </head>
 
-<body class="bg-[#020617] text-slate-200 min-h-screen flex selection:bg-indigo-500/30">
+<body class="bg-[#020617] text-slate-200 min-h-screen flex flex-col md:flex-row selection:bg-indigo-500/30">
+  <!-- Mobile Header -->
+  <div class="md:hidden flex items-center justify-between p-6 glass sticky top-0 z-40 no-shrink">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
+        <i data-lucide="zap" class="text-white w-4 h-4" fill="white"></i>
+      </div>
+      <span class="font-bold text-white tracking-tight">CodePush</span>
+    </div>
+    <button onclick="toggleSidebar()" class="text-slate-400 hover:text-white p-2">
+      <i data-lucide="menu" id="menu-icon" class="w-6 h-6"></i>
+    </button>
+  </div>
+
+  <!-- Sidebar Backdrop -->
+  <div id="sidebar-overlay" onclick="toggleSidebar()"
+    class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 hidden transition-opacity opacity-0"></div>
+
   <!-- Sidebar -->
-  <aside class="w-72 glass border-r border-white/5 flex flex-col h-screen sticky top-0 shrink-0">
+  <aside id="sidebar"
+    class="fixed inset-y-0 left-0 z-50 w-72 glass border-r border-white/5 flex flex-col h-screen transition-all transform -translate-x-full md:translate-x-0 md:sticky md:top-0 md:shrink-0">
     <div class="p-8">
       <div class="flex items-center gap-3 mb-10">
         <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
@@ -63,32 +81,32 @@
   </aside>
 
   <!-- Main Content -->
-  <main class="flex-1 p-10 max-w-7xl mx-auto w-full">
+  <main class="flex-1 p-6 md:p-10 max-w-7xl mx-auto w-full">
     <!-- View Headers -->
-    <header class="flex justify-between items-end mb-12">
-      <div>
+    <header class="flex flex-col md:flex-row md:justify-between md:items-end gap-6 mb-12">
+      <div class="flex-1">
         <% if (page==='apps' ) { %>
-          <h1 class="text-4xl font-bold text-white tracking-tight">Applications</h1>
+          <h1 class="text-3xl md:text-4xl font-bold text-white tracking-tight">Applications</h1>
           <p class="text-slate-400 mt-2">Manage your Over-The-Air app releases</p>
           <% } else if (page==='tokens' ) { %>
-            <h1 class="text-4xl font-bold text-white tracking-tight">Access Tokens</h1>
+            <h1 class="text-3xl md:text-4xl font-bold text-white tracking-tight">Access Tokens</h1>
             <p class="text-slate-400 mt-2">Security credentials for CLI and CI/CD</p>
             <% } else if (page==='app-detail' ) { %>
-              <h1 id="app-title-display" class="text-4xl font-bold text-white tracking-tight leading-tight">
+              <h1 id="app-title-display" class="text-3xl md:text-4xl font-bold text-white tracking-tight leading-tight">
                 <%= appName %>
               </h1>
               <p id="app-desc-display" class="text-slate-400 mt-2">Fetchings details...</p>
               <% } %>
       </div>
-      <div>
+      <div class="flex gap-4">
         <% if (page==='apps' ) { %>
           <button onclick="openModal('createApp')"
-            class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 px-6 rounded-xl shadow-lg transition-all flex items-center gap-2">
+            class="flex-1 md:flex-none justify-center bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 px-6 rounded-xl shadow-lg transition-all flex items-center gap-2">
             <i data-lucide="plus" class="w-4 h-4"></i> New App
           </button>
           <% } else if (page==='tokens' ) { %>
             <button onclick="openModal('createKey')"
-              class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 px-6 rounded-xl shadow-lg transition-all flex items-center gap-2">
+              class="flex-1 md:flex-none justify-center bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 px-6 rounded-xl shadow-lg transition-all flex items-center gap-2">
               <i data-lucide="plus" class="w-4 h-4"></i> Generate Token
             </button>
             <% } %>
@@ -128,6 +146,13 @@
                 <div class="glass p-8 rounded-3xl">
                   <h3 class="font-bold text-white mb-4">App Details</h3>
                   <div class="space-y-4 text-sm" id="app-meta"></div>
+                  <div class="mt-8 pt-6 border-t border-white/5">
+                    <button onclick="deleteApp()"
+                      class="w-full bg-red-500/10 hover:bg-red-500/20 text-red-500 font-bold py-3 rounded-2xl transition-all border border-red-500/20 flex items-center justify-center gap-2 group">
+                      <i data-lucide="trash-2" class="w-4 h-4 group-hover:scale-110 transition-transform"></i> Delete
+                      Application
+                    </button>
+                  </div>
                 </div>
                 <div class="glass p-8 rounded-3xl">
                   <div class="flex justify-between items-center mb-4">
@@ -142,11 +167,15 @@
           </div>
           <% } %>
 
-            <!-- Mobile FAB -->
-            <button onclick="openModal('createApp')"
-              class="fixed bottom-8 right-8 md:hidden bg-indigo-600 text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition-all active:scale-95 z-40">
-              <i data-lucide="plus" class="w-6 h-6"></i>
-            </button>
+            <!-- Mobile FAB (Only on Apps page) -->
+            <% if (page==='apps' ) { %>
+              <button onclick="openModal('createApp')"
+                class="fixed bottom-8 right-8 md:hidden bg-indigo-600 text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition-all active:scale-95 z-40 hover:scale-110">
+                <i data-lucide="plus" class="w-6 h-6 text-white" stroke-width="3"></i>
+              </button>
+              <% } %>
+
+
   </main>
 
   <!-- UI Overlays (Toasts, Modals) -->
@@ -210,6 +239,24 @@
       d.innerHTML = `<i data-lucide="${t === 'success' ? 'check-circle' : 'alert-circle'}" class="${t === 'success' ? 'text-green-500' : 'text-red-500'} w-5 h-5"></i><span class="text-sm font-medium text-white">${m}</span>`;
       c.appendChild(d); lucide.createIcons();
       setTimeout(() => { d.style.opacity = '0'; setTimeout(() => d.remove(), 300); }, 3000);
+    }
+
+    function toggleSidebar() {
+      const s = document.getElementById('sidebar');
+      const o = document.getElementById('sidebar-overlay');
+      const isOpen = !s.classList.contains('-translate-x-full');
+
+      if (isOpen) {
+        s.classList.add('-translate-x-full');
+        o.classList.add('hidden');
+        o.classList.remove('opacity-100');
+        document.body.style.overflow = '';
+      } else {
+        s.classList.remove('-translate-x-full');
+        o.classList.remove('hidden');
+        setTimeout(() => o.classList.add('opacity-100'), 10);
+        document.body.style.overflow = 'hidden';
+      }
     }
 
     async function init() {
@@ -322,6 +369,17 @@
     async function submitCollaborator() { const e = document.getElementById('m-collab-email').value; if (!e) return; await api(`/apps/${state.activeApp.name}/collaborators/${encodeURIComponent(e)}`, { method: 'POST' }); showToast('Member Invited'); closeModal(); renderCollaborators(state.activeApp); }
     async function removeCollaborator(e) { if (!(await showConfirm('Remove Member?', `Revoke access for ${e}?`))) return; await api(`/apps/${state.activeApp.name}/collaborators/${encodeURIComponent(e)}`, { method: 'DELETE' }); showToast('Member Removed'); renderCollaborators(state.activeApp); }
     async function revokeKey(n) { if (!(await showConfirm('Revoke Token?', `Delete "${n}"?`))) return; await api(`/accessKeys/${encodeURIComponent(n)}`, { method: 'DELETE' }); showToast('Token Revoked'); refreshKeys(); }
+
+    async function deleteApp() {
+      if (!(await showConfirm('Delete Application?', `This will permanently remove "${APP_NAME}" and all its deployments. This action cannot be undone.`))) return;
+      try {
+        await api(`/apps/${encodeURIComponent(APP_NAME)}`, { method: 'DELETE' });
+        showToast('Application deleted');
+        window.location.href = '/dashboard/apps';
+      } catch (e) {
+        // Error already handled by api() showToast
+      }
+    }
 
     window.onload = init;
   </script>
