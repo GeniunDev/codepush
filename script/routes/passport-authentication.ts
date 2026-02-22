@@ -438,12 +438,26 @@ export class PassportAuthentication {
   }
 
   private setupWebRoutes(router: Router): void {
-    router.get("/dashboard", limiter, this._cookieSessionMiddleware, (req: Request, res: Response): any => {
+    router.get("/dashboard", this._cookieSessionMiddleware, (req: Request, res: Response): any => {
+      res.redirect("/dashboard/apps");
+    });
+
+    router.get("/dashboard/apps", limiter, this._cookieSessionMiddleware, (req: Request, res: Response): any => {
       const accessKey: string = req.session["accessKey"];
-      if (!accessKey) {
-        return res.redirect("/auth/login");
-      }
-      res.render("dashboard", { accessKey: accessKey });
+      if (!accessKey) return res.redirect("/auth/login");
+      res.render("dashboard", { accessKey: accessKey, page: "apps" });
+    });
+
+    router.get("/dashboard/tokens", limiter, this._cookieSessionMiddleware, (req: Request, res: Response): any => {
+      const accessKey: string = req.session["accessKey"];
+      if (!accessKey) return res.redirect("/auth/login");
+      res.render("dashboard", { accessKey: accessKey, page: "tokens" });
+    });
+
+    router.get("/dashboard/apps/:appName", limiter, this._cookieSessionMiddleware, (req: Request, res: Response): any => {
+      const accessKey: string = req.session["accessKey"];
+      if (!accessKey) return res.redirect("/auth/login");
+      res.render("dashboard", { accessKey: accessKey, page: "app-detail", appName: req.params.appName });
     });
 
     router.get("/accesskey", limiter, this._cookieSessionMiddleware, (req: Request, res: Response): any => {

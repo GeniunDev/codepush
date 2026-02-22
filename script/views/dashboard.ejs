@@ -11,7 +11,6 @@
   <style type="text/tailwindcss">
     @theme {
             --color-brand: #6366f1;
-            --color-brand-dark: #4f46e5;
             --font-outfit: 'Outfit', sans-serif;
             --animate-fade-in: fade-in 0.3s ease-out;
         }
@@ -26,14 +25,8 @@
 </head>
 
 <body class="bg-[#020617] text-slate-200 min-h-screen flex selection:bg-indigo-500/30">
-  <!-- Loader -->
-  <div id="loader"
-    class="fixed inset-0 z-[100] bg-[#020617] flex items-center justify-center transition-opacity duration-500">
-    <div class="relative w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
-  </div>
-
   <!-- Sidebar -->
-  <aside class="w-72 glass border-r border-white/5 flex flex-col h-screen sticky top-0">
+  <aside class="w-72 glass border-r border-white/5 flex flex-col h-screen sticky top-0 shrink-0">
     <div class="p-8">
       <div class="flex items-center gap-3 mb-10">
         <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
@@ -43,16 +36,16 @@
       </div>
 
       <nav class="space-y-1.5">
-        <button onclick="setView('apps')" id="nav-apps"
-          class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 text-slate-400 hover:text-white hover:bg-white/5 border border-transparent">
+        <a href="/dashboard/apps"
+          class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 <%= page === 'apps' || page === 'app-detail' ? 'nav-link-active' : 'text-slate-400 hover:text-white hover:bg-white/5' %> border border-transparent">
           <i data-lucide="layout-grid" class="w-5 h-5"></i>
           Applications
-        </button>
-        <button onclick="setView('keys')" id="nav-keys"
-          class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 text-slate-400 hover:text-white hover:bg-white/5 border border-transparent">
+        </a>
+        <a href="/dashboard/tokens"
+          class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 <%= page === 'tokens' ? 'nav-link-active' : 'text-slate-400 hover:text-white hover:bg-white/5' %> border border-transparent">
           <i data-lucide="key" class="w-5 h-5"></i>
           Access Tokens
-        </button>
+        </a>
       </nav>
     </div>
 
@@ -71,431 +64,230 @@
 
   <!-- Main Content -->
   <main class="flex-1 p-10 max-w-7xl mx-auto w-full">
-    <!-- Dashboard Header -->
+    <!-- View Headers -->
     <header class="flex justify-between items-end mb-12">
       <div>
-        <h1 id="view-title" class="text-4xl font-bold text-white tracking-tight">Applications</h1>
-        <p id="view-desc" class="text-slate-400 mt-2">Manage your Over-The-Air app releases</p>
+        <% if (page==='apps' ) { %>
+          <h1 class="text-4xl font-bold text-white tracking-tight">Applications</h1>
+          <p class="text-slate-400 mt-2">Manage your Over-The-Air app releases</p>
+          <% } else if (page==='tokens' ) { %>
+            <h1 class="text-4xl font-bold text-white tracking-tight">Access Tokens</h1>
+            <p class="text-slate-400 mt-2">Security credentials for CLI and CI/CD</p>
+            <% } else if (page==='app-detail' ) { %>
+              <h1 id="app-title-display" class="text-4xl font-bold text-white tracking-tight leading-tight">
+                <%= appName %>
+              </h1>
+              <p id="app-desc-display" class="text-slate-400 mt-2">Fetchings details...</p>
+              <% } %>
       </div>
-      <div id="header-actions">
-        <button onclick="openModal('createApp')"
-          class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 px-6 rounded-xl shadow-lg shadow-indigo-500/20 transition-all active:scale-95 flex items-center gap-2">
-          <i data-lucide="plus" class="w-4 h-4"></i>
-          New Application
-        </button>
+      <div>
+        <% if (page==='apps' ) { %>
+          <button onclick="openModal('createApp')"
+            class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 px-6 rounded-xl shadow-lg transition-all flex items-center gap-2">
+            <i data-lucide="plus" class="w-4 h-4"></i> New App
+          </button>
+          <% } else if (page==='tokens' ) { %>
+            <button onclick="openModal('createKey')"
+              class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 px-6 rounded-xl shadow-lg transition-all flex items-center gap-2">
+              <i data-lucide="plus" class="w-4 h-4"></i> Generate Token
+            </button>
+            <% } %>
       </div>
     </header>
 
     <!-- View Sections -->
-    <div id="view-apps" class="view-section hidden animate-fade-in">
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="apps-grid">
-        <!-- App cards -->
+    <% if (page==='apps' ) { %>
+      <div id="apps-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in">
+        <!-- Data fetched via init() -->
       </div>
-    </div>
-
-    <div id="view-app-detail" class="view-section hidden animate-fade-in">
-      <button onclick="setView('apps')"
-        class="mb-6 text-slate-400 hover:text-white flex items-center gap-2 transition-colors">
-        <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to Apps
-      </button>
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div class="lg:col-span-2 space-y-6">
-          <div class="glass p-8 rounded-3xl" id="deployments-container">
-            <!-- Deployments list -->
-          </div>
+      <% } else if (page==='tokens' ) { %>
+        <div class="glass rounded-3xl overflow-hidden border border-white/5 animate-fade-in">
+          <table class="w-full text-left border-collapse">
+            <thead class="bg-white/5 text-slate-400 text-xs font-bold uppercase tracking-widest">
+              <tr>
+                <th class="px-8 py-4">Friendly Name</th>
+                <th class="px-8 py-4">Created</th>
+                <th class="px-8 py-4">Expires</th>
+                <th class="px-8 py-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="keys-table" class="divide-y divide-white/5"></tbody>
+          </table>
         </div>
-        <div class="space-y-6">
-          <div class="glass p-8 rounded-3xl">
-            <h3 class="font-bold text-white mb-4">App Details</h3>
-            <div class="space-y-4 text-sm" id="app-meta">
-              <!-- Meta info -->
+        <% } else if (page==='app-detail' ) { %>
+          <div class="animate-fade-in">
+            <a href="/dashboard/apps"
+              class="mb-6 text-slate-400 hover:text-white flex items-center gap-2 transition-colors inline-flex">
+              <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to Apps
+            </a>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div class="lg:col-span-2 space-y-6">
+                <div class="glass p-8 rounded-3xl" id="deployments-container"></div>
+              </div>
+              <div class="space-y-6">
+                <div class="glass p-8 rounded-3xl">
+                  <h3 class="font-bold text-white mb-4">App Details</h3>
+                  <div class="space-y-4 text-sm" id="app-meta"></div>
+                </div>
+                <div class="glass p-8 rounded-3xl">
+                  <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-white font-outfit uppercase text-xs tracking-widest">Collaborators</h3>
+                    <button onclick="openModal('addCollaborator')"
+                      class="text-indigo-400 text-xs font-bold hover:text-indigo-300">Invite</button>
+                  </div>
+                  <div class="space-y-4 text-sm" id="collaborators-list"></div>
+                </div>
+              </div>
             </div>
           </div>
-          <div class="glass p-8 rounded-3xl">
-            <div class="flex justify-between items-center mb-4">
-              <h3 class="font-bold text-white">Collaborators</h3>
-              <button onclick="openModal('addCollaborator')"
-                class="text-indigo-400 text-sm font-bold hover:text-indigo-300">Add New</button>
-            </div>
-            <div class="space-y-4 text-sm" id="collaborators-list">
-              <!-- Collaborators list -->
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+          <% } %>
 
-    <div id="view-deployment-history" class="view-section hidden animate-fade-in">
-      <button onclick="setView('app-detail', state.activeApp)"
-        class="mb-6 text-slate-400 hover:text-white flex items-center gap-2 transition-colors">
-        <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to Deployment
-      </button>
-      <div class="glass rounded-3xl overflow-hidden border border-white/5">
-        <table class="w-full">
-          <thead class="bg-white/5 text-slate-400 text-xs font-bold uppercase tracking-widest text-left">
-            <tr>
-              <th class="px-8 py-4">Label</th>
-              <th class="px-8 py-4">App Version</th>
-              <th class="px-8 py-4">Mandatory</th>
-              <th class="px-8 py-4">Released By</th>
-              <th class="px-8 py-4">Time</th>
-              <th class="px-8 py-4 text-right">Rollout</th>
-            </tr>
-          </thead>
-          <tbody id="history-table" class="divide-y divide-white/5 text-sm">
-            <!-- History rows -->
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <div id="view-keys" class="view-section hidden animate-fade-in">
-      <div class="glass rounded-3xl overflow-hidden border border-white/5">
-        <table class="w-full">
-          <thead class="bg-white/5 text-slate-400 text-xs font-bold uppercase tracking-widest text-left">
-            <tr>
-              <th class="px-8 py-4">Friendly Name</th>
-              <th class="px-8 py-4">Created</th>
-              <th class="px-8 py-4">Expires</th>
-              <th class="px-8 py-4 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="keys-table" class="divide-y divide-white/5">
-            <!-- Key rows -->
-          </tbody>
-        </table>
-      </div>
-    </div>
+            <!-- Mobile FAB -->
+            <button onclick="openModal('createApp')"
+              class="fixed bottom-8 right-8 md:hidden bg-indigo-600 text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition-all active:scale-95 z-40">
+              <i data-lucide="plus" class="w-6 h-6"></i>
+            </button>
   </main>
 
-  <!-- Modals -->
+  <!-- UI Overlays (Toasts, Modals) -->
   <div id="modal-container"
-    class="fixed inset-0 z-50 hidden items-center justify-center p-6 bg-black/60 backdrop-blur-md">
-    <div class="glass w-full max-w-md p-8 rounded-3xl shadow-2xl relative">
+    class="fixed inset-0 z-[100] hidden items-center justify-center p-6 bg-black/60 backdrop-blur-md">
+    <div class="glass w-full max-w-md p-8 rounded-3xl shadow-2xl relative animate-fade-in">
       <button onclick="closeModal()" class="absolute top-6 right-6 text-slate-500 hover:text-white transition-colors">
         <i data-lucide="x" class="w-5 h-5"></i>
       </button>
-      <div id="modal-content">
-        <!-- Dynamic Content -->
+      <div id="modal-content"></div>
+    </div>
+  </div>
+
+  <div id="confirm-modal"
+    class="fixed inset-0 z-[120] hidden items-center justify-center p-6 bg-black/60 backdrop-blur-md">
+    <div class="glass w-full max-w-sm p-8 rounded-3xl shadow-2xl text-center">
+      <div class="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6"><i
+          data-lucide="alert-triangle" class="text-red-400 w-8 h-8"></i></div>
+      <h3 id="confirm-title" class="text-xl font-bold text-white mb-2 underline-offset-4">Delete Item?</h3>
+      <p id="confirm-msg" class="text-slate-400 text-sm mb-8">This action cannot be undone.</p>
+      <div class="flex gap-3">
+        <button onclick="closeConfirm(false)"
+          class="flex-1 px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold">Cancel</button>
+        <button id="confirm-btn"
+          class="flex-1 px-4 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold">Delete</button>
       </div>
     </div>
   </div>
 
-  <!-- Scripts -->
+  <div id="toast-container" class="fixed bottom-8 right-8 z-[110] flex flex-col gap-3"></div>
+
   <script>
     const API_KEY = '<%= accessKey %>';
-    let currentView = 'apps';
-    let state = {
-      apps: [],
-      keys: [],
-      activeApp: null,
-      activeDeployment: null
-    };
+    const PAGE = '<%= page %>';
+    const APP_NAME = '<%= typeof appName !== "undefined" ? appName : "" %>';
+    let state = { apps: [], activeApp: null };
 
     async function api(path, options = {}) {
-      const resp = await fetch(path, {
-        ...options,
-        headers: {
-          'Authorization': `Bearer ${API_KEY}`,
-          'Content-Type': 'application/json',
-          ...options.headers
-        }
-      });
-      if (resp.status === 204) return true;
-      return await resp.json();
+      try {
+        const resp = await fetch(path, {
+          ...options,
+          headers: { 'Authorization': `Bearer ${API_KEY}`, 'Content-Type': 'application/json', ...(options.headers || {}) }
+        });
+        if (!resp.ok) { const err = await resp.json(); showToast(err.message || 'Operation failed', 'error'); throw err; }
+        if (resp.status === 204) return true;
+        return await resp.json();
+      } catch (err) { if (err.message !== 'Operation failed') showToast('Connection error', 'error'); throw err; }
+    }
+
+    function showToast(m, t = 'success') {
+      const c = document.getElementById('toast-container');
+      const d = document.createElement('div');
+      d.className = `glass px-6 py-4 rounded-2xl shadow-xl flex items-center gap-3 animate-fade-in border-l-4 ${t === 'success' ? 'border-l-green-500' : 'border-l-red-500'}`;
+      d.innerHTML = `<i data-lucide="${t === 'success' ? 'check-circle' : 'alert-circle'}" class="${t === 'success' ? 'text-green-500' : 'text-red-500'} w-5 h-5"></i><span class="text-sm font-medium text-white">${m}</span>`;
+      c.appendChild(d); lucide.createIcons();
+      setTimeout(() => { d.style.opacity = '0'; setTimeout(() => d.remove(), 300); }, 3000);
     }
 
     async function init() {
       lucide.createIcons();
       document.getElementById('server-url-display').innerText = window.location.host;
-      await refreshApps();
-      setView('apps');
-      hideLoader();
+      if (PAGE === 'apps') refreshApps();
+      if (PAGE === 'tokens') refreshKeys();
+      if (PAGE === 'app-detail') loadAppDetails();
     }
 
-    function hideLoader() {
-      const l = document.getElementById('loader');
-      l.style.opacity = '0';
-      setTimeout(() => l.classList.add('hidden'), 500);
-    }
-
-    async function setView(view, payload = null) {
-      currentView = view;
-
-      // UI Updates
-      document.querySelectorAll('.view-section').forEach(s => s.classList.add('hidden'));
-      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('nav-link-active'));
-
-      const btn = document.getElementById(`nav-${view}`);
-      if (btn) btn.classList.add('nav-link-active');
-
-      if (view === 'apps') {
-        document.getElementById('view-title').innerText = 'Applications';
-        document.getElementById('view-desc').innerText = 'Manage your Over-The-Air app releases';
-        document.getElementById('view-apps').classList.remove('hidden');
-        document.getElementById('header-actions').classList.remove('hidden');
-        refreshApps();
-      } else if (view === 'keys') {
-        document.getElementById('view-title').innerText = 'Access Tokens';
-        document.getElementById('view-desc').innerText = 'Security credentials for CLI and CI/CD';
-        document.getElementById('view-keys').classList.remove('hidden');
-        document.getElementById('header-actions').innerHTML = `<button onclick="openModal('createKey')" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 px-6 rounded-xl shadow-lg transition-all flex items-center gap-2"><i data-lucide="plus" class="w-4 h-4"></i> Generate Token</button>`;
-        refreshKeys();
-      } else if (view === 'app-detail') {
-        const app = payload;
-        state.activeApp = app;
-        document.getElementById('view-title').innerText = app.name;
-        document.getElementById('view-desc').innerText = `OS: ${app.os} | Platform: ${app.platform}`;
-        document.getElementById('view-app-detail').classList.remove('hidden');
-        document.getElementById('header-actions').classList.add('hidden');
-        renderAppDetail(app);
-      } else if (view === 'deployment-history') {
-        document.getElementById('view-deployment-history').classList.remove('hidden');
-        document.getElementById('header-actions').classList.add('hidden');
+    async function refreshApps() {
+      const grid = document.getElementById('apps-grid');
+      grid.innerHTML = Array(3).fill(0).map(() => `<div class="glass p-6 rounded-3xl animate-pulse"><div class="flex justify-between mb-4"><div class="w-12 h-12 bg-white/5 rounded-2xl"></div><div class="w-16 h-6 bg-white/5 rounded-full"></div></div><div class="h-6 w-3/4 bg-white/5 rounded mb-2"></div><div class="h-4 w-1/2 bg-white/5 rounded mb-6"></div><div class="flex gap-2"><div class="h-6 w-12 bg-white/5 rounded-lg"></div><div class="h-6 w-12 bg-white/5 rounded-lg"></div></div></div>`).join('');
+      const { apps } = await api('/apps');
+      if (apps.length === 0) {
+        grid.innerHTML = `<div class="col-span-full py-20 flex flex-col items-center text-center"><div class="w-20 h-20 bg-indigo-500/10 rounded-full flex items-center justify-center mb-6"><i data-lucide="layout-grid" class="text-indigo-400 w-10 h-10"></i></div><h3 class="text-2xl font-bold text-white mb-2">No Applications Found</h3><p class="text-slate-500 max-w-sm">Get started by creating your first application.</p><button onclick="openModal('createApp')" class="mt-8 bg-white/5 hover:bg-white/10 text-white font-bold py-3 px-8 rounded-xl transition-all">Create My First App</button></div>`;
+      } else {
+        grid.innerHTML = apps.map(app => `<a href="/dashboard/apps/${app.name}" class="glass p-6 rounded-3xl cursor-pointer hover:border-indigo-500/50 hover:bg-white/5 transition-all group block"><div class="flex items-center justify-between mb-4"><div class="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center group-hover:bg-indigo-500/10 transition-colors"><i data-lucide="smartphone" class="w-6 h-6 text-slate-400 group-hover:text-indigo-400"></i></div><span class="text-xs font-bold uppercase bg-white/5 px-3 py-1 rounded-full text-slate-400 group-hover:bg-indigo-500/10 group-hover:text-indigo-400">${app.os}</span></div><h3 class="text-xl font-bold text-white mb-1 group-hover:text-indigo-400 transition-colors">${app.name}</h3><p class="text-slate-500 text-sm mb-6 uppercase tracking-widest font-semibold text-[10px]">${app.platform}</p><div class="flex gap-2">${app.deployments.map(d => `<span class="text-[9px] font-bold uppercase tracking-wider bg-white/5 border border-white/5 text-slate-500 px-2 py-1 rounded-md mb-2">${d}</span>`).join('')}</div></a>`).join('');
       }
       lucide.createIcons();
     }
 
-    async function refreshApps() {
+    async function loadAppDetails() {
       const { apps } = await api('/apps');
-      state.apps = apps;
-      const grid = document.getElementById('apps-grid');
-      grid.innerHTML = apps.map(app => `
-                <div onclick='setView("app-detail", ${JSON.stringify(app)})' class="glass p-6 rounded-3xl cursor-pointer hover:border-indigo-500/50 hover:bg-white/5 transition-all group group">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center group-hover:bg-indigo-500/10 transition-colors">
-                            <i data-lucide="smartphone" class="w-6 h-6 text-slate-400 group-hover:text-indigo-400"></i>
-                        </div>
-                        <span class="text-xs font-bold uppercase bg-white/5 px-3 py-1 rounded-full text-slate-400 group-hover:bg-indigo-500/10 group-hover:text-indigo-400">${app.os}</span>
-                    </div>
-                    <h3 class="text-xl font-bold text-white mb-1">${app.name}</h3>
-                    <p class="text-slate-500 text-sm mb-6">${app.platform}</p>
-                    <div class="flex gap-2">
-                        ${app.deployments.map(d => `<span class="text-[10px] font-bold uppercase tracking-wider bg-white/5 text-slate-400 px-2.5 py-1 rounded-lg">${d}</span>`).join('')}
-                    </div>
-                </div>
-            `).join('');
-      lucide.createIcons();
+      const app = apps.find(a => a.name === APP_NAME);
+      if (!app) return window.location.href = '/dashboard/apps';
+      state.activeApp = app;
+      document.getElementById('app-desc-display').innerText = `OS: ${app.os} | Platform: ${app.platform}`;
+      renderAppDetail(app);
     }
 
     async function renderAppDetail(app) {
-      const deploymentsContainer = document.getElementById('deployments-container');
-      deploymentsContainer.innerHTML = `<div class="flex items-center justify-center py-10"><div class="w-8 h-8 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div></div>`;
-
+      const container = document.getElementById('deployments-container');
+      container.innerHTML = `<div class="flex items-center justify-center py-20 animate-pulse text-indigo-400"><div class="flex flex-col items-center gap-4 text-sm font-bold uppercase tracking-widest opacity-50"><div class="w-8 h-8 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>Loading Deployments</div></div>`;
       const { deployments } = await api(`/apps/${app.name}/deployments`);
 
-      deploymentsContainer.innerHTML = `
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold text-white">Deployments</h2>
-                    <button class="text-indigo-400 text-sm font-bold hover:text-indigo-300">Create New</button>
-                </div>
-                <div class="space-y-4">
-                    ${deployments.map(d => `
-                        <div class="bg-white/5 rounded-2xl p-6 border border-white/5">
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <h4 class="text-lg font-bold text-white flex items-center gap-2">
-                                        ${d.name}
-                                        <span class="text-[10px] uppercase bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full">Active</span>
-                                    </h4>
-                                    <div class="mt-4 font-mono text-xs text-slate-500 bg-black/30 p-2 rounded-lg border border-white/5 flex items-center justify-between gap-4">
-                                        <span>Key: ${d.key}</span>
-                                        <button onclick="navigator.clipboard.writeText('${d.key}')" class="text-slate-400 hover:text-white"><i data-lucide="copy" class="w-3.5 h-3.5"></i></button>
-                                    </div>
-                                </div>
-                                <button onclick="viewHistory('${d.name}')" class="bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 font-bold px-4 py-2 rounded-xl text-xs transition-colors">History</button>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
+      container.innerHTML = `<div class="flex justify-between items-center mb-8"><h2 class="text-xl font-bold text-white">Environments</h2><button class="text-indigo-400 text-sm font-bold hover:text-indigo-300">Manage Keys</button></div><div class="space-y-4">${deployments.map(d => `<div class="bg-white/3 rounded-2xl p-6 border border-white/5 flex items-center justify-between"><div class="flex-1"><h4 class="text-lg font-bold text-white flex items-center gap-2">${d.name} <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span></h4><div class="mt-4 font-mono text-[11px] text-slate-500 bg-black/40 px-3 py-2 rounded-lg border border-white/5 flex items-center gap-3 w-fit"><span>Deployment Key: ${d.key}</span><button onclick="navigator.clipboard.writeText('${d.key}'); showToast('Key copied to clipboard')" class="text-slate-500 hover:text-white transition-colors"><i data-lucide="copy" class="w-3.5 h-3.5"></i></button></div></div><button class="bg-indigo-500/5 hover:bg-indigo-500/10 text-indigo-400 font-bold px-4 py-2 rounded-xl text-xs transition-colors border border-indigo-500/20">View Release Logs</button></div>`).join('')}</div>`;
 
-      document.getElementById('app-meta').innerHTML = `
-                <div class="flex justify-between">
-                    <span class="text-slate-500">Platform</span>
-                    <span class="text-white">${app.platform}</span>
-                </div>
-                <div class="flex justify-between">
-                    <span class="text-slate-500">Target OS</span>
-                    <span class="text-white">${app.os}</span>
-                </div>
-            `;
-
+      document.getElementById('app-meta').innerHTML = `<div class="flex justify-between border-b border-white/5 pb-3"><span class="text-slate-500">Platform</span><span class="text-white font-medium">${app.platform}</span></div><div class="flex justify-between pt-1"><span class="text-slate-500">Target OS</span><span class="text-white font-medium">${app.os}</span></div>`;
       renderCollaborators(app);
       lucide.createIcons();
     }
 
     async function renderCollaborators(app) {
-      const container = document.getElementById('collaborators-list');
-      const { collaborators } = await api(`/apps/${app.name}/collaborators`);
-
-      container.innerHTML = Object.entries(collaborators).map(([email, data]) => `
-                <div class="flex items-center justify-between group">
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-full bg-indigo-500/10 flex items-center justify-center text-[10px] font-bold text-indigo-400">
-                            ${email[0].toUpperCase()}
-                        </div>
-                        <div>
-                            <div class="text-xs font-medium text-white">${email}</div>
-                            <div class="text-[10px] text-slate-500 uppercase">${data.permission}</div>
-                        </div>
-                    </div>
-                    ${!data.isCurrentAccount ? `<button onclick="removeCollaborator('${email}')" class="text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>` : ''}
-                </div>
-            `).join('');
+      const c = document.getElementById('collaborators-list');
+      try {
+        const { collaborators } = await api(`/apps/${app.name}/collaborators`);
+        c.innerHTML = Object.entries(collaborators).map(([email, data]) => `<div class="flex items-center justify-between group"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-[10px] font-bold text-indigo-400">${email[0].toUpperCase()}</div><div><div class="text-xs font-semibold text-white">${email}</div><div class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">${data.permission}</div></div></div>${!data.isCurrentAccount ? `<button onclick="removeCollaborator('${email}')" class="text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"><i data-lucide="x-circle" class="w-4 h-4"></i></button>` : ''}</div>`).join('');
+      } catch (e) { c.innerHTML = '<p class="text-red-400 text-xs">Failed to load team.</p>'; }
       lucide.createIcons();
-    }
-
-    async function viewHistory(deploymentName) {
-      const app = state.activeApp;
-      state.activeDeployment = deploymentName;
-
-      setView('deployment-history');
-      document.getElementById('view-title').innerText = `${deploymentName} History`;
-      document.getElementById('view-desc').innerText = `Release logs for ${app.name}`;
-
-      const history = await api(`/apps/${app.name}/deployments/${deploymentName}/history`);
-      const table = document.getElementById('history-table');
-
-      table.innerHTML = history.length ? history.reverse().map(pkg => `
-                <tr class="hover:bg-white/5 transition-colors">
-                    <td class="px-8 py-5 text-white font-mono font-bold">${pkg.label}</td>
-                    <td class="px-8 py-5 text-slate-400 font-medium">${pkg.appVersion}</td>
-                    <td class="px-8 py-5">
-                        <span class="text-[10px] font-bold uppercase ${pkg.isMandatory ? 'text-red-400 bg-red-400/10' : 'text-slate-500 bg-white/5'} px-2 py-0.5 rounded-full">${pkg.isMandatory ? 'Yes' : 'No'}</span>
-                    </td>
-                    <td class="px-8 py-5 text-slate-400">${pkg.releasedBy || "CLI User"}</td>
-                    <td class="px-8 py-5 text-slate-500">${new Date(pkg.uploadTime).toLocaleString()}</td>
-                    <td class="px-8 py-5 text-right font-bold text-indigo-400">${pkg.rollout ? pkg.rollout + '%' : '100%'}</td>
-                </tr>
-            `).join('') : `<tr><td colspan="6" class="px-8 py-20 text-center text-slate-500">No releases found for this deployment.</td></tr>`;
-      lucide.createIcons();
-    }
-
-    async function removeCollaborator(email) {
-      if (!confirm(`Remove collaborator ${email}?`)) return;
-      await api(`/apps/${state.activeApp.name}/collaborators/${encodeURIComponent(email)}`, { method: 'DELETE' });
-      renderCollaborators(state.activeApp);
     }
 
     async function refreshKeys() {
+      const t = document.getElementById('keys-table');
+      t.innerHTML = Array(3).fill(0).map(() => `<tr class="animate-pulse"><td class="px-8 py-5"><div class="h-4 w-32 bg-white/5 rounded"></div></td><td class="px-8 py-5"><div class="h-4 w-24 bg-white/5 rounded"></div></td><td class="px-8 py-5"><div class="h-4 w-12 bg-white/5 rounded"></div></td><td class="px-8 py-5 text-right"><div class="h-4 w-4 bg-white/5 rounded ml-auto"></div></td></tr>`).join('');
       const { accessKeys } = await api('/accessKeys');
-      const table = document.getElementById('keys-table');
-      table.innerHTML = accessKeys.map(k => `
-                <tr class="group hover:bg-white/5 transition-colors">
-                    <td class="px-8 py-5 font-semibold text-white">${k.friendlyName}</td>
-                    <td class="px-8 py-5 text-sm text-slate-500">${new Date(k.createdTime).toLocaleDateString()}</td>
-                    <td class="px-8 py-5 text-sm">
-                        <span class="${new Date(k.expires) < new Date() ? 'text-red-400' : 'text-slate-500'}">
-                            ${new Date(k.expires).toLocaleDateString()}
-                        </span>
-                    </td>
-                    <td class="px-8 py-5 text-right">
-                        <button onclick="revokeKey('${k.friendlyName}')" class="text-slate-500 hover:text-red-400 transition-colors">
-                            <i data-lucide="trash-2" class="w-4 h-4"></i>
-                        </button>
-                    </td>
-                </tr>
-            `).join('');
-      lucide.createIcons();
-    }
-
-    async function revokeKey(name) {
-      if (!confirm(`Revoke key "${name}"? This action cannot be undone.`)) return;
-      await api(`/accessKeys/${encodeURIComponent(name)}`, { method: 'DELETE' });
-      refreshKeys();
-    }
-
-    function openModal(type) {
-      const container = document.getElementById('modal-container');
-      const content = document.getElementById('modal-content');
-
-      if (type === 'createApp') {
-        content.innerHTML = `
-                    <h2 class="text-2xl font-bold text-white mb-6">Create New App</h2>
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Application Name</label>
-                            <input id="modal-app-name" type="text" placeholder="My Awesome App" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-indigo-500/50 transition-colors">
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">OS</label>
-                                <select id="modal-app-os" class="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-indigo-500/50 transition-colors">
-                                    <option>Android</option><option>iOS</option><option>Windows</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Platform</label>
-                                <select id="modal-app-platform" class="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-indigo-500/50 transition-colors">
-                                    <option>React-Native</option><option>Cordova</option>
-                                </select>
-                            </div>
-                        </div>
-                        <button onclick="submitApp()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-xl mt-4 transition-all active:scale-[0.98]">Complete Registration</button>
-                    </div>
-                `;
-      } else if (type === 'createKey') {
-        content.innerHTML = `
-                    <h2 class="text-2xl font-bold text-white mb-6">Generate New Token</h2>
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Friendly Name</label>
-                            <input id="modal-key-name" type="text" placeholder="Desktop CLI / Jenkins CI" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-indigo-500/50 transition-colors">
-                        </div>
-                        <button onclick="submitKey()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-xl mt-4 transition-all">Generate Access Key</button>
-                    </div>
-                `;
-      } else if (type === 'showKey') {
-        content.innerHTML = `
-                    <div class="text-center">
-                        <div class="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                            <i data-lucide="check" class="text-green-500 w-8 h-8"></i>
-                        </div>
-                        <h2 class="text-2xl font-bold text-white mb-2">Token Generated</h2>
-                        <p class="text-slate-400 text-sm mb-6">Store this safely. You won't be able to see it again!</p>
-                        <div class="bg-black/40 p-4 rounded-xl border border-dashed border-indigo-500/50 font-mono text-indigo-400 break-all mb-8 select-all">
-                            ${payload}
-                        </div>
-                        <button onclick="closeModal()" class="w-full bg-white/5 hover:bg-white/10 text-white font-bold py-3.5 rounded-xl transition-all">I've Saved It</button>
-                    </div>
-                `;
+      if (accessKeys.length === 0) {
+        t.innerHTML = `<tr><td colspan="4" class="px-8 py-20 text-center"><p class="text-slate-500">No active access tokens.</p></td></tr>`;
+      } else {
+        t.innerHTML = accessKeys.map(k => `<tr class="group hover:bg-white/3 transition-colors"><td class="px-8 py-5 font-bold text-white">${k.friendlyName}</td><td class="px-8 py-5 text-sm text-slate-500">${new Date(k.createdTime).toLocaleDateString()}</td><td class="px-8 py-5 text-sm"><span class="${new Date(k.expires) < new Date() ? 'text-red-400' : 'text-slate-500'}">${new Date(k.expires).toLocaleDateString()}</span></td><td class="px-8 py-5 text-right"><button onclick="revokeKey('${k.friendlyName}')" class="text-slate-500 hover:text-red-400 transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td></tr>`).join('');
       }
-      container.classList.remove('hidden');
-      container.classList.add('flex');
       lucide.createIcons();
     }
 
-    function closeModal() {
-      const container = document.getElementById('modal-container');
-      container.classList.add('hidden');
-      container.classList.remove('flex');
+    function openModal(t, payload = null) {
+      const modal = document.getElementById('modal-container');
+      const content = document.getElementById('modal-content');
+      if (t === 'createApp') content.innerHTML = `<h2 class="text-2xl font-bold text-white mb-6">Register App</h2><div class="space-y-4"><div><label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">App Name</label><input id="m-app-name" type="text" placeholder="My App" class="w-full bg-white/5 border border-white/5 rounded-2xl px-5 py-4 text-white outline-none focus:border-indigo-500/50"></div><div class="grid grid-cols-2 gap-4"><div><label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">OS</label><select id="m-app-os" class="w-full bg-slate-900 border border-white/5 rounded-2xl px-5 py-4 text-white"><option>Android</option><option>iOS</option></select></div><div><label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Platform</label><select id="m-app-platform" class="w-full bg-slate-900 border border-white/5 rounded-2xl px-5 py-4 text-white"><option>React-Native</option><option>Cordova</option></select></div></div><button onclick="submitApp()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-3xl mt-6 transition-all shadow-xl shadow-indigo-500/20 active:scale-95">Create Application</button></div>`;
+      if (t === 'createKey') content.innerHTML = `<h2 class="text-2xl font-bold text-white mb-6">New Access Token</h2><div class="space-y-4"><div><label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Friendly Name</label><input id="m-key-name" type="text" placeholder="Jenkins/Cli" class="w-full bg-white/5 border border-white/5 rounded-2xl px-5 py-4 text-white outline-none focus:border-indigo-500/50"></div><button onclick="submitKey()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-3xl mt-6">Generate Key</button></div>`;
+      if (t === 'showKey') content.innerHTML = `<div class="text-center"><div class="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-6"><i data-lucide="check" class="text-green-500 w-8 h-8"></i></div><h2 class="text-2xl font-bold text-white mb-2">Key Generated</h2><p class="text-slate-400 text-sm mb-8">Copy this key safely. <b>You cannot see it again.</b></p><div class="bg-black/40 p-5 rounded-2xl border border-dashed border-indigo-500/50 font-mono text-indigo-400 break-all mb-8 select-all text-sm">${payload}</div><button onclick="closeModal()" class="w-full bg-white/5 hover:bg-white/10 text-white font-bold py-4 rounded-3xl">Dismiss</button></div>`;
+      if (t === 'addCollaborator') content.innerHTML = `<h2 class="text-2xl font-bold text-white mb-6">Invite Team Member</h2><div class="space-y-4"><div><label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Email Address</label><input id="m-collab-email" type="email" placeholder="dev@example.com" class="w-full bg-white/5 border border-white/5 rounded-2xl px-5 py-4 text-white outline-none focus:border-indigo-500/50"></div><button onclick="submitCollaborator()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-3xl mt-6 shadow-xl shadow-indigo-500/20 active:scale-95">Send Invite</button></div>`;
+      modal.classList.remove('hidden'); modal.classList.add('flex'); lucide.createIcons();
     }
 
-    async function submitApp() {
-      const name = document.getElementById('modal-app-name').value;
-      const os = document.getElementById('modal-app-os').value;
-      const platform = document.getElementById('modal-app-platform').value;
-      if (!name) return;
+    function closeModal() { const m = document.getElementById('modal-container'); m.classList.add('hidden'); m.classList.remove('flex'); }
 
-      await api('/apps', {
-        method: 'POST',
-        body: JSON.stringify({ name, os, platform })
-      });
-      closeModal();
-      refreshApps();
-    }
+    // Confirm & API Wrapper
+    let cr; function showConfirm(t, m) { document.getElementById('confirm-title').innerText = t; document.getElementById('confirm-msg').innerText = m; const d = document.getElementById('confirm-modal'); d.classList.remove('hidden'); d.classList.add('flex'); lucide.createIcons(); return new Promise(r => { cr = r; document.getElementById('confirm-btn').onclick = () => closeConfirm(true); }); }
+    function closeConfirm(res) { document.getElementById('confirm-modal').classList.add('hidden'); if (cr) cr(res); }
 
-    async function submitKey() {
-      const name = document.getElementById('modal-key-name').value;
-      if (!name) return;
-      const res = await api('/accessKeys', {
-        method: 'POST',
-        body: JSON.stringify({ friendlyName: name })
-      });
-      openModal('showKey', res.accessKey.name);
-      refreshKeys();
-    }
+    async function submitApp() { const n = document.getElementById('m-app-name').value; const o = document.getElementById('m-app-os').value; const p = document.getElementById('m-app-platform').value; if (!n) return; await api('/apps', { method: 'POST', body: JSON.stringify({ name: n, os: o, platform: p }) }); showToast('App Registered'); closeModal(); refreshApps(); }
+    async function submitKey() { const n = document.getElementById('m-key-name').value; if (!n) return; const r = await api('/accessKeys', { method: 'POST', body: JSON.stringify({ friendlyName: n }) }); openModal('showKey', r.accessKey.name); refreshKeys(); }
+    async function submitCollaborator() { const e = document.getElementById('m-collab-email').value; if (!e) return; await api(`/apps/${state.activeApp.name}/collaborators/${encodeURIComponent(e)}`, { method: 'POST' }); showToast('Member Invited'); closeModal(); renderCollaborators(state.activeApp); }
+    async function removeCollaborator(e) { if (!(await showConfirm('Remove Member?', `Revoke access for ${e}?`))) return; await api(`/apps/${state.activeApp.name}/collaborators/${encodeURIComponent(e)}`, { method: 'DELETE' }); showToast('Member Removed'); renderCollaborators(state.activeApp); }
+    async function revokeKey(n) { if (!(await showConfirm('Revoke Token?', `Delete "${n}"?`))) return; await api(`/accessKeys/${encodeURIComponent(n)}`, { method: 'DELETE' }); showToast('Token Revoked'); refreshKeys(); }
 
     window.onload = init;
   </script>
