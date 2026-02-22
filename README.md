@@ -4,6 +4,12 @@ The CodePush Server is a Node.js application that powers the CodePush Service. I
 
 Please refer to [react-native-code-push](https://github.com/microsoft/react-native-code-push) for instructions on how to onboard your application to CodePush.
 
+## Features
+
+- **Built-In Web Dashboard**: A beautiful, modern web UI for visualizing your applications, managing deployments, handling collaborators, and generating access keys instantly. Accessible simply by navigating to your `SERVER_URL`.
+- **Zero-Dependency Local Storage**: A built-in filesystem-based storage adapter allowing rapid self-hosting deployments with Docker, Dokploy, and Coolify.
+- **Azure Storage Compatibility**: Native support for Microsoft Azure Blob Storage is fully retained. If you prefer to host your payloads in the cloud, simply omit the `STORAGE_DIR` environment variable and provide the relevant Azure credentials. The server will automatically connect to your cloud containers.
+
 ## Deployment
 
 ### Docker & Self-Hosting (Dokploy / Coolify etc)
@@ -43,6 +49,11 @@ If you are using a modern deployment platform like Dokploy:
 5. Map a **Persistent Volume** in Dokploy to `/storage` in the container. This ensures your CodePush apps, database, and payload blobs persist between container restarts!
 6. Click **Deploy**.
 
+#### Azure App Service (Alternative)
+
+If you still prefer to deploy using Azure App Service:
+You can host CodePush exactly as originally intended by Microsoft. Make sure to omit the `STORAGE_DIR` environment variable and instead provide your `AZURE_STORAGE_ACCOUNT` and `AZURE_STORAGE_ACCESS_KEY` to reconnect to Azure Blob Storage.
+
 ## Configure react-native-code-push
 
 In order for [react-native-code-push](https://github.com/microsoft/react-native-code-push) to use your server, additional configuration value is needed.
@@ -73,30 +84,23 @@ Below are instructions on how to create OAuth App registrations.
 ### GitHub
 
 1. Go to https://github.com/settings/developers
-1. Click on `New OAuth App`
-1. `Homepage URL` parameter will be the same as URL of your CodePush application on Azure - `https://codepush-<project-suffix>.azurewebsites.net` (for local development it will be either http://localhost:3000 or https://localhost:8443)
-1. `Authorization callback URL` will be `https://codepush-<project-suffix>.azurewebsites.net/auth/callback/github` (for local development it will be either http://localhost:3000/auth/callback/github or https://localhost:8443/auth/callback/github)
+2. Click on `New OAuth App`
+3. Set the `Homepage URL` to the URL of your deployed CodePush application. For example: `https://codepush.yourdomain.com` (for local development it will be `http://localhost:3000`)
+4. Set the `Authorization callback URL` to `https://codepush.yourdomain.com/auth/callback/github` (for local development it will be `http://localhost:3000/auth/callback/github`)
 
 ### Microsoft
 
 Both work and personal accounts use the same application for authentication. The only difference is property `Supported account types` that is set when creating the app.
 
-1. Register an Azure Registered Application following [official guideline](https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-register-app#register-an-application)
-1. For option `Supported account types`:
+1. Register an Azure/Microsoft Registered Application following [official guideline](https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-register-app#register-an-application)
+2. For option `Supported account types`:
    1. If you want to support both Personal and Work accounts, select `Accounts in any organizational directory (Any Microsoft Entra ID tenant - Multitenant) and personal Microsoft accounts (e.g. Skype, Xbox)`
-   1. If you want to only support Work accounts, choose either `Accounts in this organizational directory only (<your directory> - Single tenant)` or `Accounts in any organizational directory (Any Microsoft Entra ID tenant - Multitenant)` depending if you want to support Single or Multitenant authorization. Make sure to set `MICROSOFT_TENANT_ID` envrionment variable in case of using single tenant application.
-   1. If you want to only support Personal accounts, select `Personal Microsoft accounts only`
-1. Set up Redirect URI(s) depending on the choice you made for `Supported account types`. If you choose both Personal and Work accounts, you need to add both redirect URIs, otherwise just one of the ones:
-   1. Personal account: `https://codepush-<project-suffix>.azurewebsites.net/auth/callback/microsoft` (for local development it will be either http://localhost:3000/auth/callback/microsoft or https://localhost:8443/auth/callback/microsoft)
-   1. Work account: `https://codepush-<project-suffix>.azurewebsites.net/auth/callback/azure-ad` (for local development it will be http://localhost:3000/auth/callback/azure-ad or https://localhost:8443/auth/callback/azure-ad)
-1. Generate secret following this [official guideline](https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-register-app#add-credentials)
-
-## Naming limitations
-
-### project-suffix
-
-1. Only letters are allowed.
-1. Maximum 15 characters.
+   2. If you want to only support Work accounts, choose either `Accounts in this organizational directory only (<your directory> - Single tenant)` or `Accounts in any organizational directory (Any Microsoft Entra ID tenant - Multitenant)` depending if you want to support Single or Multitenant authorization. Make sure to set `MICROSOFT_TENANT_ID` envrionment variable in case of using single tenant application.
+   3. If you want to only support Personal accounts, select `Personal Microsoft accounts only`
+3. Set up Redirect URI(s) depending on the choice you made for `Supported account types`. If you choose both Personal and Work accounts, you need to add both redirect URIs, otherwise just one of the ones:
+   1. Personal account: `https://codepush.yourdomain.com/auth/callback/microsoft` (for local development it will be `http://localhost:3000/auth/callback/microsoft`)
+   2. Work account: `https://codepush.yourdomain.com/auth/callback/azure-ad` (for local development it will be `http://localhost:3000/auth/callback/azure-ad`)
+4. Generate secret following this [official guideline](https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-register-app#add-credentials)
 
 ## Metrics
 
