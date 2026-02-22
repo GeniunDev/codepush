@@ -138,6 +138,7 @@ export class PassportAuthentication {
     const router: Router = Router();
 
     router.use(passport.initialize());
+    this.setupWebRoutes(router);
 
     router.get("/authenticated", limiter, this.authenticate, (req: Request, res: Response): any => {
       res.send({ authenticated: true });
@@ -336,7 +337,7 @@ export class PassportAuthentication {
             req.session["accessKey"] = key;
             req.session["isNewAccount"] = action === "register";
 
-            res.redirect("/accesskey");
+            res.redirect("/dashboard");
           });
         };
 
@@ -434,14 +435,27 @@ export class PassportAuthentication {
           .done();
       },
     );
+  }
+
+  private setupWebRoutes(router: Router): void {
+    router.get("/dashboard", limiter, this._cookieSessionMiddleware, (req: Request, res: Response): any => {
+      const accessKey: string = req.session["accessKey"];
+      if (!accessKey) {
+        return res.redirect("/auth/login");
+      }
+      res.render("dashboard", { accessKey: accessKey });
+    });
 
     router.get("/accesskey", limiter, this._cookieSessionMiddleware, (req: Request, res: Response): any => {
       const accessKey: string = req.session["accessKey"];
       const isNewAccount: boolean = req.session["isNewAccount"];
 
-      req.session = null;
-
       res.render("accesskey", { accessKey: accessKey, isNewAccount: isNewAccount });
+    });
+
+    router.get("/auth/logout", this._cookieSessionMiddleware, (req: Request, res: Response): any => {
+      req.session = null;
+      res.redirect("/auth/login");
     });
   }
 

@@ -1,99 +1,88 @@
-<!-- Copyright (c) Microsoft Corporation.
- Licensed under the MIT License. -->
-
 <!DOCTYPE html>
+<html lang="en">
 
-<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
 <head>
     <meta charset="utf-8" />
-    <title>CodePush</title>
-    <style>
-        @font-face {
-            font-family: 'wf_segoe-ui_normal';
-            src: url("//i.s-microsoft.com/fonts/segoe-ui/west-european/normal/latest.eot");
-            src: url("//i.s-microsoft.com/fonts/segoe-ui/west-european/normal/latest.eot?#iefix") format("embedded-opentype"), url("//i.s-microsoft.com/fonts/segoe-ui/west-european/normal/latest.woff") format("woff"), url("//i.s-microsoft.com/fonts/segoe-ui/west-european/normal/latest.ttf") format("truetype"), url("//i.s-microsoft.com/fonts/segoe-ui/west-european/normal/latest.svg#web") format("svg");
-            font-weight: normal;
-            font-style: normal;
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodePush - Authenticate</title>
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style type="text/tailwindcss">
+        @theme {
+            --color-brand: #6366f1;
+            --color-brand-dark: #4f46e5;
+            --font-outfit: 'Outfit', sans-serif;
         }
-
-        @font-face {
-            font-family: 'wf_segoe-ui_light';
-            src: url("//i.s-microsoft.com/fonts/segoe-ui/west-european/light/latest.eot");
-            src: url("//i.s-microsoft.com/fonts/segoe-ui/west-european/light/latest.eot?#iefix") format("embedded-opentype"), url("//i.s-microsoft.com/fonts/segoe-ui/west-european/light/latest.woff") format("woff"), url("//i.s-microsoft.com/fonts/segoe-ui/west-european/light/latest.ttf") format("truetype"), url("//i.s-microsoft.com/fonts/segoe-ui/west-european/light/latest.svg#web") format("svg");
-            font-weight: normal;
-            font-style: normal;
-        }
-
-        html, body {
-            width: 100%;
-            height: 100%;
-            margin: 0px;
-            padding: 0px;
-            overflow: hidden;
-        }
-
-        .container {
-            padding-top: 4em;
-            text-align: center;
-            font-size: 1.5em;
-            font-family: 'wf_segoe-ui_light', 'wf_segoe-ui_normal', Tahoma;
-            color: white;
-            width: 100%;
-            height: 100%;
-            filter: progid:DXImageTransform.Microsoft.AlphaImageLoader(src='images/CodePushFinal_4_bg.svg', sizingMethod='scale');
-            -ms-filter: "progid:DXImageTransform.Microsoft.AlphaImageLoader(src='images/CodePushFinal_4_bg.svg', sizingMethod='scale')";
-            background-color: black;
-            background-image: url('images/CodePushFinal_4_bg.svg');
-            background-size: cover;
-            background-position: top;
-            background-repeat: no-repeat;
-            overflow: hidden;
-        }
-
-        .spacer {
-            padding-left:1em;
-        }
-
-        .container .github {
-            max-width: 7em;
-        }
-
-        .container .microsoft {
-            max-width: 7.9em;
-        }
-
-        a {
-            background-color: #56ACE2;
-            color: black;
-            padding: 10px 16px;
-            text-decoration: inherit;
-            font-family: 'wf_segoe-ui_normal', 'wf_segoe-ui_normal', Tahoma;
-            font-size:1.2rem
-        }
-
-        a:hover {
-            background-color: #82c1e9;
-        }
-
-        a img {
-            margin-bottom: -0.2rem;
-            width: 24px;
+        body {
+            font-family: var(--font-outfit);
         }
     </style>
 </head>
-<body>
-    <div class="container">
-        Please select an authentication provider for your CodePush account:<br />
-        <br />
-        <% if (isGitHubAuthenticationEnabled) { %>
-            <a href="/auth/<%=action%>/github"><img class="github" src="images/GitHub.png"> GitHub</a>
-            <span class="spacer"/>
-        <% } %>
-        <% if (isMicrosoftAuthenticationEnabled) { %>
-            <a href="/auth/<%=action%>/microsoft"><img class="microsoft" src="images/windows10.png"> Microsoft (Personal)</a>
-            <span class="spacer"/>
-            <a href="/auth/<%=action%>/azure-ad"><img class="microsoft" src="images/windows10.png"> Microsoft (Work)</a><br />
-        <% } %>
+
+<body class="bg-[#020617] text-slate-100 min-h-screen flex items-center justify-center p-6 selection:bg-indigo-500/30">
+    <!-- Animated Background -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none">
+        <div class="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-indigo-600/20 blur-[120px] rounded-full"></div>
+        <div class="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-blue-600/10 blur-[120px] rounded-full"></div>
     </div>
+
+    <main class="relative z-10 w-full max-w-[440px]">
+        <div
+            class="bg-slate-900/50 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 shadow-2xl overflow-hidden">
+            <!-- Header -->
+            <div class="text-center mb-10">
+                <div
+                    class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-tr from-indigo-500 to-blue-600 rounded-2xl shadow-lg shadow-indigo-500/20 mb-6">
+                    <i data-lucide="zap" class="text-white w-8 h-8" fill="white"></i>
+                </div>
+                <h1 class="text-3xl font-bold tracking-tight text-white mb-2">Welcome Back</h1>
+                <p class="text-slate-400">Sign in to manage your CodePush updates</p>
+            </div>
+
+            <!-- Login Options -->
+            <div class="space-y-4">
+                <% if (isGitHubAuthenticationEnabled) { %>
+                    <a href="/auth/login/github"
+                        class="group flex items-center justify-center gap-3 w-full bg-white text-slate-900 font-semibold py-3.5 px-6 rounded-2xl transition-all duration-300 hover:bg-slate-100 active:scale-[0.98]">
+                        <i data-lucide="github" class="w-5 h-5"></i>
+                        Continue with GitHub
+                    </a>
+                    <% } %>
+
+                        <% if (isMicrosoftAuthenticationEnabled) { %>
+                            <a href="/auth/login/microsoft"
+                                class="group flex items-center justify-center gap-3 w-full bg-[#2f2f2f] text-white font-semibold py-3.5 px-6 rounded-2xl border border-white/5 transition-all duration-300 hover:bg-[#3f3f3f] active:scale-[0.98]">
+                                <svg class="w-5 h-5" viewBox="0 0 21 21" fill="currentColor">
+                                    <path d="M0 0h10v10H0z" fill="#f25022" />
+                                    <path d="M11 0h10v10H11z" fill="#7fba00" />
+                                    <path d="M0 11h10v10H0z" fill="#00a4ef" />
+                                    <path d="M11 11h10v10H11z" fill="#ffb900" />
+                                </svg>
+                                Sign in with Microsoft
+                            </a>
+                            <% } %>
+            </div>
+
+            <!-- Footer Meta -->
+            <div class="mt-10 pt-8 border-t border-white/5 text-center">
+                <p class="text-xs text-slate-500 uppercase tracking-widest font-medium">
+                    Self-Hosted CodePush Instance
+                </p>
+            </div>
+        </div>
+
+        <!-- CLI Hint -->
+        <p class="text-center mt-8 text-slate-500 text-sm">
+            Trying to login via CLI? <br />
+            <code
+                class="bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded mt-2 inline-block border border-indigo-500/20">code-push login</code>
+        </p>
+    </main>
+
+    <script>
+        lucide.createIcons();
+    </script>
 </body>
+
 </html>

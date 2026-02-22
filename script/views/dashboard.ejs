@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CodePush - Management Console</title>
+  <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style type="text/tailwindcss">
+    @theme {
+            --color-brand: #6366f1;
+            --color-brand-dark: #4f46e5;
+            --font-outfit: 'Outfit', sans-serif;
+            --animate-fade-in: fade-in 0.3s ease-out;
+        }
+        @keyframes fade-in {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        body { font-family: var(--font-outfit); }
+        .glass { @apply bg-slate-900/40 backdrop-blur-xl border border-white/10; }
+        .nav-link-active { @apply bg-indigo-500/10 text-indigo-400 border-indigo-500/50; }
+    </style>
+</head>
+
+<body class="bg-[#020617] text-slate-200 min-h-screen flex selection:bg-indigo-500/30">
+  <!-- Loader -->
+  <div id="loader"
+    class="fixed inset-0 z-[100] bg-[#020617] flex items-center justify-center transition-opacity duration-500">
+    <div class="relative w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="w-72 glass border-r border-white/5 flex flex-col h-screen sticky top-0">
+    <div class="p-8">
+      <div class="flex items-center gap-3 mb-10">
+        <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
+          <i data-lucide="zap" class="text-white w-5 h-5" fill="white"></i>
+        </div>
+        <span class="text-xl font-bold tracking-tight text-white">CodePush</span>
+      </div>
+
+      <nav class="space-y-1.5">
+        <button onclick="setView('apps')" id="nav-apps"
+          class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 text-slate-400 hover:text-white hover:bg-white/5 border border-transparent">
+          <i data-lucide="layout-grid" class="w-5 h-5"></i>
+          Applications
+        </button>
+        <button onclick="setView('keys')" id="nav-keys"
+          class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 text-slate-400 hover:text-white hover:bg-white/5 border border-transparent">
+          <i data-lucide="key" class="w-5 h-5"></i>
+          Access Tokens
+        </button>
+      </nav>
+    </div>
+
+    <div class="mt-auto p-8 space-y-4">
+      <div class="p-4 rounded-2xl bg-indigo-500/5 border border-indigo-500/10 mb-4">
+        <p class="text-xs font-semibold text-indigo-400 uppercase tracking-widest mb-1">Instance</p>
+        <p class="text-sm font-medium text-slate-300 truncate" id="server-url-display">Self-Hosted</p>
+      </div>
+      <a href="/auth/logout"
+        class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/5 transition-colors">
+        <i data-lucide="log-out" class="w-5 h-5"></i>
+        Sign Out
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="flex-1 p-10 max-w-7xl mx-auto w-full">
+    <!-- Dashboard Header -->
+    <header class="flex justify-between items-end mb-12">
+      <div>
+        <h1 id="view-title" class="text-4xl font-bold text-white tracking-tight">Applications</h1>
+        <p id="view-desc" class="text-slate-400 mt-2">Manage your Over-The-Air app releases</p>
+      </div>
+      <div id="header-actions">
+        <button onclick="openModal('createApp')"
+          class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 px-6 rounded-xl shadow-lg shadow-indigo-500/20 transition-all active:scale-95 flex items-center gap-2">
+          <i data-lucide="plus" class="w-4 h-4"></i>
+          New Application
+        </button>
+      </div>
+    </header>
+
+    <!-- View Sections -->
+    <div id="view-apps" class="view-section hidden animate-fade-in">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="apps-grid">
+        <!-- App cards -->
+      </div>
+    </div>
+
+    <div id="view-app-detail" class="view-section hidden animate-fade-in">
+      <button onclick="setView('apps')"
+        class="mb-6 text-slate-400 hover:text-white flex items-center gap-2 transition-colors">
+        <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to Apps
+      </button>
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="lg:col-span-2 space-y-6">
+          <div class="glass p-8 rounded-3xl" id="deployments-container">
+            <!-- Deployments list -->
+          </div>
+        </div>
+        <div class="space-y-6">
+          <div class="glass p-8 rounded-3xl">
+            <h3 class="font-bold text-white mb-4">App Details</h3>
+            <div class="space-y-4 text-sm" id="app-meta">
+              <!-- Meta info -->
+            </div>
+          </div>
+          <div class="glass p-8 rounded-3xl">
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="font-bold text-white">Collaborators</h3>
+              <button onclick="openModal('addCollaborator')"
+                class="text-indigo-400 text-sm font-bold hover:text-indigo-300">Add New</button>
+            </div>
+            <div class="space-y-4 text-sm" id="collaborators-list">
+              <!-- Collaborators list -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="view-deployment-history" class="view-section hidden animate-fade-in">
+      <button onclick="setView('app-detail', state.activeApp)"
+        class="mb-6 text-slate-400 hover:text-white flex items-center gap-2 transition-colors">
+        <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to Deployment
+      </button>
+      <div class="glass rounded-3xl overflow-hidden border border-white/5">
+        <table class="w-full">
+          <thead class="bg-white/5 text-slate-400 text-xs font-bold uppercase tracking-widest text-left">
+            <tr>
+              <th class="px-8 py-4">Label</th>
+              <th class="px-8 py-4">App Version</th>
+              <th class="px-8 py-4">Mandatory</th>
+              <th class="px-8 py-4">Released By</th>
+              <th class="px-8 py-4">Time</th>
+              <th class="px-8 py-4 text-right">Rollout</th>
+            </tr>
+          </thead>
+          <tbody id="history-table" class="divide-y divide-white/5 text-sm">
+            <!-- History rows -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="view-keys" class="view-section hidden animate-fade-in">
+      <div class="glass rounded-3xl overflow-hidden border border-white/5">
+        <table class="w-full">
+          <thead class="bg-white/5 text-slate-400 text-xs font-bold uppercase tracking-widest text-left">
+            <tr>
+              <th class="px-8 py-4">Friendly Name</th>
+              <th class="px-8 py-4">Created</th>
+              <th class="px-8 py-4">Expires</th>
+              <th class="px-8 py-4 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="keys-table" class="divide-y divide-white/5">
+            <!-- Key rows -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modals -->
+  <div id="modal-container"
+    class="fixed inset-0 z-50 hidden items-center justify-center p-6 bg-black/60 backdrop-blur-md">
+    <div class="glass w-full max-w-md p-8 rounded-3xl shadow-2xl relative">
+      <button onclick="closeModal()" class="absolute top-6 right-6 text-slate-500 hover:text-white transition-colors">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+      <div id="modal-content">
+        <!-- Dynamic Content -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script>
+    const API_KEY = '<%= accessKey %>';
+    let currentView = 'apps';
+    let state = {
+      apps: [],
+      keys: [],
+      activeApp: null,
+      activeDeployment: null
+    };
+
+    async function api(path, options = {}) {
+      const resp = await fetch(path, {
+        ...options,
+        headers: {
+          'Authorization': `Bearer ${API_KEY}`,
+          'Content-Type': 'application/json',
+          ...options.headers
+        }
+      });
+      if (resp.status === 204) return true;
+      return await resp.json();
+    }
+
+    async function init() {
+      lucide.createIcons();
+      document.getElementById('server-url-display').innerText = window.location.host;
+      await refreshApps();
+      setView('apps');
+      hideLoader();
+    }
+
+    function hideLoader() {
+      const l = document.getElementById('loader');
+      l.style.opacity = '0';
+      setTimeout(() => l.classList.add('hidden'), 500);
+    }
+
+    async function setView(view, payload = null) {
+      currentView = view;
+
+      // UI Updates
+      document.querySelectorAll('.view-section').forEach(s => s.classList.add('hidden'));
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('nav-link-active'));
+
+      const btn = document.getElementById(`nav-${view}`);
+      if (btn) btn.classList.add('nav-link-active');
+
+      if (view === 'apps') {
+        document.getElementById('view-title').innerText = 'Applications';
+        document.getElementById('view-desc').innerText = 'Manage your Over-The-Air app releases';
+        document.getElementById('view-apps').classList.remove('hidden');
+        document.getElementById('header-actions').classList.remove('hidden');
+        refreshApps();
+      } else if (view === 'keys') {
+        document.getElementById('view-title').innerText = 'Access Tokens';
+        document.getElementById('view-desc').innerText = 'Security credentials for CLI and CI/CD';
+        document.getElementById('view-keys').classList.remove('hidden');
+        document.getElementById('header-actions').innerHTML = `<button onclick="openModal('createKey')" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 px-6 rounded-xl shadow-lg transition-all flex items-center gap-2"><i data-lucide="plus" class="w-4 h-4"></i> Generate Token</button>`;
+        refreshKeys();
+      } else if (view === 'app-detail') {
+        const app = payload;
+        state.activeApp = app;
+        document.getElementById('view-title').innerText = app.name;
+        document.getElementById('view-desc').innerText = `OS: ${app.os} | Platform: ${app.platform}`;
+        document.getElementById('view-app-detail').classList.remove('hidden');
+        document.getElementById('header-actions').classList.add('hidden');
+        renderAppDetail(app);
+      } else if (view === 'deployment-history') {
+        document.getElementById('view-deployment-history').classList.remove('hidden');
+        document.getElementById('header-actions').classList.add('hidden');
+      }
+      lucide.createIcons();
+    }
+
+    async function refreshApps() {
+      const { apps } = await api('/apps');
+      state.apps = apps;
+      const grid = document.getElementById('apps-grid');
+      grid.innerHTML = apps.map(app => `
+                <div onclick='setView("app-detail", ${JSON.stringify(app)})' class="glass p-6 rounded-3xl cursor-pointer hover:border-indigo-500/50 hover:bg-white/5 transition-all group group">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center group-hover:bg-indigo-500/10 transition-colors">
+                            <i data-lucide="smartphone" class="w-6 h-6 text-slate-400 group-hover:text-indigo-400"></i>
+                        </div>
+                        <span class="text-xs font-bold uppercase bg-white/5 px-3 py-1 rounded-full text-slate-400 group-hover:bg-indigo-500/10 group-hover:text-indigo-400">${app.os}</span>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-1">${app.name}</h3>
+                    <p class="text-slate-500 text-sm mb-6">${app.platform}</p>
+                    <div class="flex gap-2">
+                        ${app.deployments.map(d => `<span class="text-[10px] font-bold uppercase tracking-wider bg-white/5 text-slate-400 px-2.5 py-1 rounded-lg">${d}</span>`).join('')}
+                    </div>
+                </div>
+            `).join('');
+      lucide.createIcons();
+    }
+
+    async function renderAppDetail(app) {
+      const deploymentsContainer = document.getElementById('deployments-container');
+      deploymentsContainer.innerHTML = `<div class="flex items-center justify-center py-10"><div class="w-8 h-8 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div></div>`;
+
+      const { deployments } = await api(`/apps/${app.name}/deployments`);
+
+      deploymentsContainer.innerHTML = `
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-white">Deployments</h2>
+                    <button class="text-indigo-400 text-sm font-bold hover:text-indigo-300">Create New</button>
+                </div>
+                <div class="space-y-4">
+                    ${deployments.map(d => `
+                        <div class="bg-white/5 rounded-2xl p-6 border border-white/5">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h4 class="text-lg font-bold text-white flex items-center gap-2">
+                                        ${d.name}
+                                        <span class="text-[10px] uppercase bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full">Active</span>
+                                    </h4>
+                                    <div class="mt-4 font-mono text-xs text-slate-500 bg-black/30 p-2 rounded-lg border border-white/5 flex items-center justify-between gap-4">
+                                        <span>Key: ${d.key}</span>
+                                        <button onclick="navigator.clipboard.writeText('${d.key}')" class="text-slate-400 hover:text-white"><i data-lucide="copy" class="w-3.5 h-3.5"></i></button>
+                                    </div>
+                                </div>
+                                <button onclick="viewHistory('${d.name}')" class="bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 font-bold px-4 py-2 rounded-xl text-xs transition-colors">History</button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+
+      document.getElementById('app-meta').innerHTML = `
+                <div class="flex justify-between">
+                    <span class="text-slate-500">Platform</span>
+                    <span class="text-white">${app.platform}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-500">Target OS</span>
+                    <span class="text-white">${app.os}</span>
+                </div>
+            `;
+
+      renderCollaborators(app);
+      lucide.createIcons();
+    }
+
+    async function renderCollaborators(app) {
+      const container = document.getElementById('collaborators-list');
+      const { collaborators } = await api(`/apps/${app.name}/collaborators`);
+
+      container.innerHTML = Object.entries(collaborators).map(([email, data]) => `
+                <div class="flex items-center justify-between group">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-indigo-500/10 flex items-center justify-center text-[10px] font-bold text-indigo-400">
+                            ${email[0].toUpperCase()}
+                        </div>
+                        <div>
+                            <div class="text-xs font-medium text-white">${email}</div>
+                            <div class="text-[10px] text-slate-500 uppercase">${data.permission}</div>
+                        </div>
+                    </div>
+                    ${!data.isCurrentAccount ? `<button onclick="removeCollaborator('${email}')" class="text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>` : ''}
+                </div>
+            `).join('');
+      lucide.createIcons();
+    }
+
+    async function viewHistory(deploymentName) {
+      const app = state.activeApp;
+      state.activeDeployment = deploymentName;
+
+      setView('deployment-history');
+      document.getElementById('view-title').innerText = `${deploymentName} History`;
+      document.getElementById('view-desc').innerText = `Release logs for ${app.name}`;
+
+      const history = await api(`/apps/${app.name}/deployments/${deploymentName}/history`);
+      const table = document.getElementById('history-table');
+
+      table.innerHTML = history.length ? history.reverse().map(pkg => `
+                <tr class="hover:bg-white/5 transition-colors">
+                    <td class="px-8 py-5 text-white font-mono font-bold">${pkg.label}</td>
+                    <td class="px-8 py-5 text-slate-400 font-medium">${pkg.appVersion}</td>
+                    <td class="px-8 py-5">
+                        <span class="text-[10px] font-bold uppercase ${pkg.isMandatory ? 'text-red-400 bg-red-400/10' : 'text-slate-500 bg-white/5'} px-2 py-0.5 rounded-full">${pkg.isMandatory ? 'Yes' : 'No'}</span>
+                    </td>
+                    <td class="px-8 py-5 text-slate-400">${pkg.releasedBy || "CLI User"}</td>
+                    <td class="px-8 py-5 text-slate-500">${new Date(pkg.uploadTime).toLocaleString()}</td>
+                    <td class="px-8 py-5 text-right font-bold text-indigo-400">${pkg.rollout ? pkg.rollout + '%' : '100%'}</td>
+                </tr>
+            `).join('') : `<tr><td colspan="6" class="px-8 py-20 text-center text-slate-500">No releases found for this deployment.</td></tr>`;
+      lucide.createIcons();
+    }
+
+    async function removeCollaborator(email) {
+      if (!confirm(`Remove collaborator ${email}?`)) return;
+      await api(`/apps/${state.activeApp.name}/collaborators/${encodeURIComponent(email)}`, { method: 'DELETE' });
+      renderCollaborators(state.activeApp);
+    }
+
+    async function refreshKeys() {
+      const { accessKeys } = await api('/accessKeys');
+      const table = document.getElementById('keys-table');
+      table.innerHTML = accessKeys.map(k => `
+                <tr class="group hover:bg-white/5 transition-colors">
+                    <td class="px-8 py-5 font-semibold text-white">${k.friendlyName}</td>
+                    <td class="px-8 py-5 text-sm text-slate-500">${new Date(k.createdTime).toLocaleDateString()}</td>
+                    <td class="px-8 py-5 text-sm">
+                        <span class="${new Date(k.expires) < new Date() ? 'text-red-400' : 'text-slate-500'}">
+                            ${new Date(k.expires).toLocaleDateString()}
+                        </span>
+                    </td>
+                    <td class="px-8 py-5 text-right">
+                        <button onclick="revokeKey('${k.friendlyName}')" class="text-slate-500 hover:text-red-400 transition-colors">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+      lucide.createIcons();
+    }
+
+    async function revokeKey(name) {
+      if (!confirm(`Revoke key "${name}"? This action cannot be undone.`)) return;
+      await api(`/accessKeys/${encodeURIComponent(name)}`, { method: 'DELETE' });
+      refreshKeys();
+    }
+
+    function openModal(type) {
+      const container = document.getElementById('modal-container');
+      const content = document.getElementById('modal-content');
+
+      if (type === 'createApp') {
+        content.innerHTML = `
+                    <h2 class="text-2xl font-bold text-white mb-6">Create New App</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Application Name</label>
+                            <input id="modal-app-name" type="text" placeholder="My Awesome App" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-indigo-500/50 transition-colors">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">OS</label>
+                                <select id="modal-app-os" class="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-indigo-500/50 transition-colors">
+                                    <option>Android</option><option>iOS</option><option>Windows</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Platform</label>
+                                <select id="modal-app-platform" class="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-indigo-500/50 transition-colors">
+                                    <option>React-Native</option><option>Cordova</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button onclick="submitApp()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-xl mt-4 transition-all active:scale-[0.98]">Complete Registration</button>
+                    </div>
+                `;
+      } else if (type === 'createKey') {
+        content.innerHTML = `
+                    <h2 class="text-2xl font-bold text-white mb-6">Generate New Token</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Friendly Name</label>
+                            <input id="modal-key-name" type="text" placeholder="Desktop CLI / Jenkins CI" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-indigo-500/50 transition-colors">
+                        </div>
+                        <button onclick="submitKey()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-xl mt-4 transition-all">Generate Access Key</button>
+                    </div>
+                `;
+      } else if (type === 'showKey') {
+        content.innerHTML = `
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <i data-lucide="check" class="text-green-500 w-8 h-8"></i>
+                        </div>
+                        <h2 class="text-2xl font-bold text-white mb-2">Token Generated</h2>
+                        <p class="text-slate-400 text-sm mb-6">Store this safely. You won't be able to see it again!</p>
+                        <div class="bg-black/40 p-4 rounded-xl border border-dashed border-indigo-500/50 font-mono text-indigo-400 break-all mb-8 select-all">
+                            ${payload}
+                        </div>
+                        <button onclick="closeModal()" class="w-full bg-white/5 hover:bg-white/10 text-white font-bold py-3.5 rounded-xl transition-all">I've Saved It</button>
+                    </div>
+                `;
+      }
+      container.classList.remove('hidden');
+      container.classList.add('flex');
+      lucide.createIcons();
+    }
+
+    function closeModal() {
+      const container = document.getElementById('modal-container');
+      container.classList.add('hidden');
+      container.classList.remove('flex');
+    }
+
+    async function submitApp() {
+      const name = document.getElementById('modal-app-name').value;
+      const os = document.getElementById('modal-app-os').value;
+      const platform = document.getElementById('modal-app-platform').value;
+      if (!name) return;
+
+      await api('/apps', {
+        method: 'POST',
+        body: JSON.stringify({ name, os, platform })
+      });
+      closeModal();
+      refreshApps();
+    }
+
+    async function submitKey() {
+      const name = document.getElementById('modal-key-name').value;
+      if (!name) return;
+      const res = await api('/accessKeys', {
+        method: 'POST',
+        body: JSON.stringify({ friendlyName: name })
+      });
+      openModal('showKey', res.accessKey.name);
+      refreshKeys();
+    }
+
+    window.onload = init;
+  </script>
+</body>
+
+</html>
