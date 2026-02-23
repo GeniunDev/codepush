@@ -99,18 +99,21 @@ export class RedisManager {
 
   constructor() {
     if (process.env.REDIS_HOST && process.env.REDIS_PORT) {
-      const redisConfig = {
+      const redisConfig: any = {
         host: process.env.REDIS_HOST,
         port: process.env.REDIS_PORT,
         auth_pass: process.env.REDIS_KEY,
-        tls: {
-          // Note: Node defaults CA's to those trusted by Mozilla
-          rejectUnauthorized: true,
-        },
-        enable_offline_queue: false,
+        enable_offline_queue: true,
         retry_max_delay: 5000,
         max_attempts: 5,
       };
+
+      if (process.env.REDIS_TLS === "true") {
+        redisConfig.tls = {
+          // Note: Node defaults CA's to those trusted by Mozilla
+          rejectUnauthorized: true,
+        };
+      }
       this._opsClient = redis.createClient(redisConfig);
       this._metricsClient = redis.createClient(redisConfig);
       this._opsClient.on("error", (err: Error) => {
