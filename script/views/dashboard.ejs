@@ -240,8 +240,10 @@
   <div id="confirm-modal"
     class="fixed inset-0 z-[120] hidden items-center justify-center p-6 bg-black/60 backdrop-blur-md">
     <div class="glass w-full max-w-sm p-8 rounded-3xl shadow-2xl text-center">
-      <div class="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6"><i
-          data-lucide="alert-triangle" class="text-red-400 w-8 h-8"></i></div>
+      <div id="confirm-icon-container"
+        class="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+        <i id="confirm-icon" data-lucide="alert-triangle" class="text-red-400 w-8 h-8"></i>
+      </div>
       <h3 id="confirm-title" class="text-xl font-bold text-white mb-2 underline-offset-4">Delete Item?</h3>
       <p id="confirm-msg" class="text-slate-400 text-sm mb-8">This action cannot be undone.</p>
       <div class="flex gap-3">
@@ -441,7 +443,9 @@
     }
 
     async function toggleRelease(label, shouldEnable) {
-      if (!(await showConfirm(shouldEnable ? 'Enable Release?' : 'Disable Release?', `Are you sure you want to ${shouldEnable ? 'enable' : 'disable'} release ${label}? Clients will ${shouldEnable ? 'start' : 'stop'} receiving this update.`))) return;
+      const action = shouldEnable ? 'Enable' : 'Disable';
+      const msg = `Are you sure you want to ${action.toLowerCase()} release ${label}? Clients will ${shouldEnable ? 'start' : 'stop'} receiving this update.`;
+      if (!(await showConfirm(`${action} Release?`, msg, action, !shouldEnable))) return;
 
       try {
         await api(`/apps/${APP_NAME}/deployments/${DEPLOYMENT_NAME}/release`, {
@@ -512,17 +516,43 @@
     function closeModal() { const m = document.getElementById('modal-container'); m.classList.add('hidden'); m.classList.remove('flex'); }
 
     // Confirm & API Wrapper
-    let cr; function showConfirm(t, m) { document.getElementById('confirm-title').innerText = t; document.getElementById('confirm-msg').innerText = m; const d = document.getElementById('confirm-modal'); d.classList.remove('hidden'); d.classList.add('flex'); lucide.createIcons(); return new Promise(r => { cr = r; document.getElementById('confirm-btn').onclick = () => closeConfirm(true); }); }
+    let cr;
+    function showConfirm(t, m, btnText = 'Delete', isDanger = true) {
+      document.getElementById('confirm-title').innerText = t;
+      document.getElementById('confirm-msg').innerText = m;
+      const btn = document.getElementById('confirm-btn');
+      btn.innerText = btnText;
+
+      const iconContainer = document.getElementById('confirm-icon-container');
+      const icon = document.getElementById('confirm-icon');
+
+      if (isDanger) {
+        btn.className = "flex-1 px-4 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold transition-all";
+        iconContainer.className = "w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6";
+        icon.className = "text-red-400 w-8 h-8";
+        icon.setAttribute('data-lucide', 'alert-triangle');
+      } else {
+        btn.className = "flex-1 px-4 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold transition-all";
+        iconContainer.className = "w-16 h-16 bg-indigo-500/10 rounded-full flex items-center justify-center mx-auto mb-6 text-indigo-400";
+        icon.className = "text-indigo-400 w-8 h-8";
+        icon.setAttribute('data-lucide', 'info');
+      }
+
+      const d = document.getElementById('confirm-modal');
+      d.classList.remove('hidden'); d.classList.add('flex');
+      lucide.createIcons();
+      return new Promise(r => { cr = r; btn.onclick = () => closeConfirm(true); });
+    }
     function closeConfirm(res) { document.getElementById('confirm-modal').classList.add('hidden'); if (cr) cr(res); }
 
     async function submitApp() { const n = document.getElementById('m-app-name').value; const o = document.getElementById('m-app-os').value; const p = document.getElementById('m-app-platform').value; if (!n) return; await api('/apps', { method: 'POST', body: JSON.stringify({ name: n, os: o, platform: p }) }); showToast('App Registered'); closeModal(); refreshApps(); }
     async function submitKey() { const n = document.getElementById('m-key-name').value; if (!n) return; const r = await api('/accessKeys', { method: 'POST', body: JSON.stringify({ friendlyName: n }) }); openModal('showKey', r.accessKey.name); refreshKeys(); }
     async function submitCollaborator() { const e = document.getElementById('m-collab-email').value; if (!e) return; await api(`/apps/${state.activeApp.name}/collaborators/${encodeURIComponent(e)}`, { method: 'POST' }); showToast('Member Invited'); closeModal(); renderCollaborators(state.activeApp); }
-    async function removeCollaborator(e) { if (!(await showConfirm('Remove Member?', `Revoke access for ${e}?`))) return; await api(`/apps/${state.activeApp.name}/collaborators/${encodeURIComponent(e)}`, { method: 'DELETE' }); showToast('Member Removed'); renderCollaborators(state.activeApp); }
-    async function revokeKey(n) { if (!(await showConfirm('Revoke Token?', `Delete "${n}"?`))) return; await api(`/accessKeys/${encodeURIComponent(n)}`, { method: 'DELETE' }); showToast('Token Revoked'); refreshKeys(); }
+    async function removeCollaborator(e) { if (!(await showConfirm('Remove Member?', `Revoke access for ${e}?`, 'Remove', true))) return; await api(`/apps/${state.activeApp.name}/collaborators/${encodeURIComponent(e)}`, { method: 'DELETE' }); showToast('Member Removed'); renderCollaborators(state.activeApp); }
+    async function revokeKey(n) { if (!(await showConfirm('Revoke Token?', `Delete "${n}"?`, 'Revoke', true))) return; await api(`/accessKeys/${encodeURIComponent(n)}`, { method: 'DELETE' }); showToast('Token Revoked'); refreshKeys(); }
 
     async function deleteApp() {
-      if (!(await showConfirm('Delete Application?', `This will permanently remove "${APP_NAME}" and all its deployments. This action cannot be undone.`))) return;
+      if (!(await showConfirm('Delete Application?', `This will permanently remove "${APP_NAME}" and all its deployments. This action cannot be undone.`, 'Delete', true))) return;
       try {
         await api(`/apps/${encodeURIComponent(APP_NAME)}`, { method: 'DELETE' });
         showToast('Application deleted');
