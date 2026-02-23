@@ -142,9 +142,8 @@ export class RedisManager {
       return this._setupMetricsClientPromise;
     }
 
-    if (!this._metricsClient.ready) {
-      return q.reject<void>(new Error("Redis metrics client is not ready"));
-    }
+    // We don't check for .ready here anymore because enable_offline_queue is true.
+    // Commands will be queued and executed once the connection is established.
 
     this._setupMetricsClientPromise = q(<void>null)
       .then(() => this._promisifiedMetricsClient.select(RedisManager.METRICS_DB))
@@ -176,8 +175,8 @@ export class RedisManager {
     methodName: keyof PromisifiedRedisClient,
     ...args: any[]
   ): Promise<T> {
-    if (!this.isEnabled || !client || !client.ready) {
-      return q.reject<T>(new Error("Redis client is not ready"));
+    if (!this.isEnabled || !client) {
+      return q.reject<T>(new Error("Redis client is not enabled or does not exist"));
     }
     try {
       const func = promisifiedClient[methodName] as any;
@@ -242,7 +241,9 @@ export class RedisManager {
     return this.ensureMetricsSetup()
       .then(() => this._safeCall<number>(this._metricsClient, this._promisifiedMetricsClient, "hincrby", hash, field, 1))
       .then(() => {})
-      .catch(() => {});
+      .catch((err) => {
+        console.error("Redis error (incrementLabelStatusCount):", err.message);
+      });
   }
 
   public clearMetricsForDeploymentKey(deploymentKey: string): Promise<void> {
@@ -284,7 +285,10 @@ export class RedisManager {
 
         return <DeploymentMetrics>metrics;
       })
-      .catch(() => q<DeploymentMetrics>(null));
+      .catch((err) => {
+        console.error("Redis error (getMetricsWithDeploymentKey):", err.message);
+        return q<DeploymentMetrics>(null);
+      });
   }
 
   public recordUpdate(
@@ -311,7 +315,9 @@ export class RedisManager {
         return this._safeCall<any[]>(this._metricsClient, this._promisifiedMetricsClient, "execBatch", batchClient);
       })
       .then(() => {})
-      .catch(() => {});
+      .catch((err) => {
+        console.error("Redis error (recordUpdate):", err.message);
+      });
   }
 
   public removeDeploymentKeyClientActiveLabel(deploymentKey: string, clientUniqueId: string): Promise<void> {
