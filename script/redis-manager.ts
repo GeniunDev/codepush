@@ -102,11 +102,14 @@ export class RedisManager {
       const redisConfig: any = {
         host: process.env.REDIS_HOST,
         port: process.env.REDIS_PORT,
-        auth_pass: process.env.REDIS_KEY,
         enable_offline_queue: true,
         retry_max_delay: 5000,
         max_attempts: 5,
       };
+
+      if (process.env.REDIS_KEY) {
+        redisConfig.auth_pass = process.env.REDIS_KEY;
+      }
 
       if (process.env.REDIS_TLS === "true") {
         redisConfig.tls = {
